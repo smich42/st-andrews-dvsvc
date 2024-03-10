@@ -27,7 +27,7 @@ def _has_quick_exit(soup: BeautifulSoup) -> bool:
 
         if any(w in words for w in ["close", "exit", "leave", "hide"]):
             matches += 1
-        if any(w in words for w in ["now", "quick", "emergency", "instant"]):
+        if any(w in words for w in ["now", "quick", "quickly", "emergency", "instant", "instantly"]):
             matches += 1
         if any(w in words for w in ["site", "website", "page", "webpage"]):
             matches += 1
@@ -188,6 +188,7 @@ def get_page_scorer() -> PageScorer:
         KeywordTokenPredicate({"empowerment"},
                               {"program", "programs", "programme", "programmes"}, constant_weight=6),
         KeywordTokenPredicate({"ptsd"}, constant_weight=5),
+        KeywordTokenPredicate({"volunteer", "volunteers"}, constant_weight=1),
         KeywordTokenPredicate({"stalking", "stalker"}, constant_weight=4),
         KeywordTokenPredicate({"worry", "worried"}, constant_weight=1),
         KeywordTokenPredicate({"report", "reporting"},
@@ -200,7 +201,7 @@ def get_page_scorer() -> PageScorer:
         KeywordTokenPredicate(
             set(SCOTTISH_CHARITIES.keys()), constant_weight=20),
 
-        HtmlPredicate(_has_quick_exit, constant_weight=25, scaling_weight=1),
+        HtmlPredicate(_has_quick_exit, constant_weight=15, scaling_weight=1),
     ]
 
-    return PageScorer(30, PAGE_PREDICATES)
+    return PageScorer(30, -0.01, PAGE_PREDICATES)

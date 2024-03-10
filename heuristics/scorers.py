@@ -19,14 +19,14 @@ class HtmlPredicate(Predicate):
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.apply})"
 
 
 class KeywordPredicate(Predicate):
     keyword_sets: list[set[str]]  # An instance of each must occur
 
-    def __repr__(self):
+    def __str__(self):
         return self.__class__.__name__ + "(" + " ".join([f"{{{next(iter(keyword_set))} ... }}" for keyword_set in self.keyword_sets]) + ")"
 
 
@@ -66,7 +66,7 @@ class TldPredicate(Predicate):
 
         self.apply = lambda tld: self.tld == tld
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.__class__.__name__}({self.tld})"
 
 
@@ -75,7 +75,7 @@ class Score:
         self.value = value
         self.matched_predicates = matched_predicates
 
-    def __repr__(self):
+    def __str__(self):
         return f"{self.__class__.__name__}({self.value:.3f}, {self.matched_predicates})"
 
 
@@ -98,8 +98,9 @@ class _ScoreBuilder:
 
 
 class PageScorer:
-    def __init__(self, percentile_90: float, predicates: list[HtmlPredicate | KeywordTokenPredicate]):
+    def __init__(self, percentile_90: float, word_count_factor: float, predicates: list[HtmlPredicate | KeywordTokenPredicate]):
         self.percentile_90 = percentile_90
+        self.word_count_factor = word_count_factor
         self.predicates = predicates
 
     def get_score(self, page_html: str) -> Score:
@@ -118,6 +119,8 @@ class PageScorer:
 
             if is_match:
                 sb.compound(predicate)
+
+        sb.apply_weights(len(page_words) * self.word_count_factor, 1.)
 
         return sb.get_score(self.percentile_90)
 

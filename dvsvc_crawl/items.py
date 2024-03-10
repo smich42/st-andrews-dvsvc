@@ -7,10 +7,9 @@ from scrapy import Item, Field
 
 
 class CandidatePage(Item):
-    url = Field()
+    link = Field()
     pscore = Field()
-    page_text = Field()
     time_crawled = Field()
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self['url']}, {self['pscore']})"
+    def __str__(self):
+        return f"{self.__class__.__name__}({self['link']}, {self['pscore']})"

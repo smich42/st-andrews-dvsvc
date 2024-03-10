@@ -70,9 +70,8 @@ class DvsvcSpider(CrawlSpider):
 
         if pscore.value > PAGE_SCORE_TO_ITEMISE:
             page = CandidatePage()
-            page["url"] = response.url
+            page["link"] = response.url
             page["pscore"] = pscore
-            # page["page_text"] = page_text
             page["time_crawled"] = response.headers["Date"]
 
             yield page
