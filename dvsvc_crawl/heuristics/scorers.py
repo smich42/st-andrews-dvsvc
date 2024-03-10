@@ -19,12 +19,17 @@ class HtmlPredicate(Predicate):
         self.scaling_weight = scaling_weight
 
     def __str__(self) -> str:
-        return f"HtmlPredicate({self.apply})"
+        return f"{self.__class__.__name__}({self.apply})"
 
 
 class KeywordPredicate(Predicate):
-    keyword_sets: list[set[str]]
+    keyword_sets: list[set[str]]  # An instance of each must occur
 
+    def __str__(self):
+        return self.__class__.__name__ + "(" + " ".join([f"{{{next(iter(keyword_set))} ... }}" for keyword_set in self.keyword_sets]) + ")"
+
+
+class KeywordTokenPredicate(Predicate):
     def __init__(self, *keyword_sets: set[str], constant_weight: float = 0., scaling_weight: float = 1.):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
@@ -34,15 +39,9 @@ class KeywordPredicate(Predicate):
                                                 for keyword in keyword_set)
                                             for keyword_set in self.keyword_sets)
 
-    def __str__(self):
-        return "KeywordPredicate(" + " ".join([f"{{{next(iter(keyword_set))} ... }}" for keyword_set in self.keyword_sets]) + ")"
 
-# N.B. Slower as it searches text rather than set.
-
-
-class PartialKeywordPredicate(Predicate):
-    keyword_sets: list[set[str]]
-
+class KeywordSearchPredicate(Predicate):
+    # N.B. Slower as it searches text rather than set.
     def __init__(self, *keyword_sets: set[str], constant_weight: float = 0., scaling_weight: float = 1.):
         self.keywords_sets = keyword_sets
         self.constant_weight = constant_weight
@@ -51,9 +50,6 @@ class PartialKeywordPredicate(Predicate):
         self.apply = lambda page_text: all(any(keyword in page_text
                                                for keyword in keyword_set)
                                            for keyword_set in self.keyword_sets)
-
-    def __str__(self):
-        return "PartialKeywordPredicate(" + " ".join([f"{{{next(iter(keyword_set))} ... }}" for keyword_set in self.keyword_sets]) + ")"
 
 
 class TldPredicate(Predicate):
@@ -70,7 +66,7 @@ class TldPredicate(Predicate):
         self.apply = lambda tld: self.tld == tld
 
     def __str__(self):
-        return f"TldPredicate({self.tld})"
+        return f"{self.__class__.__name__}({self.tld})"
 
 
 class Score:
@@ -98,8 +94,8 @@ class _ScoreBuilder:
 
 
 class PageScorer:
-    def __init__(self, percentile_90: float, predicates: list[HtmlPredicate | KeywordPredicate]):
-        self.percentile_90 = percentile_90  # 20 is good
+    def __init__(self, percentile_90: float, predicates: list[HtmlPredicate | KeywordTokenPredicate]):
+        self.percentile_90 = percentile_90
         self.predicates = predicates
 
     def get_score(self, page_html: str) -> Score:
@@ -129,10 +125,10 @@ class PageScorer:
 
 
 class URLScorer:
-    def __init__(self, predicates: list[TldPredicate | PartialKeywordPredicate], percentile_90: float, parent_factor: float):
+    def __init__(self, predicates: list[TldPredicate | KeywordSearchPredicate], percentile_90: float, parent_factor: float):
         self.predicates = predicates
-        self.percentile_90 = percentile_90  # 5 is good
-        self.parent_factor = parent_factor  # 0.2 is good
+        self.percentile_90 = percentile_90
+        self.parent_factor = parent_factor
 
     def get_score(self, url: str, parent_page_score: int) -> Score:
         url = url.lower()
@@ -143,7 +139,7 @@ class URLScorer:
         for predicate in self.predicates:
             if type(predicate) is TldPredicate and tld:
                 is_match = predicate.apply(tld)
-            elif type(predicate) is PartialKeywordPredicate:
+            elif type(predicate) is KeywordSearchPredicate:
                 is_match = predicate.apply(url)
 
             if is_match:
