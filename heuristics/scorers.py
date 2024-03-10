@@ -1,15 +1,16 @@
 from typing import Callable
 from bs4 import BeautifulSoup
 from tld import get_tld
+from typing import Any
 import re
 
-from helpers import logistic00
+from heuristics.helpers import logistic00
 
 
 class Predicate:
     constant_weight: float
     scaling_weight: float
-    apply: Callable[[str | set[str] | BeautifulSoup], bool]
+    apply: Callable[[Any], bool]
 
 
 class HtmlPredicate(Predicate):
@@ -18,14 +19,14 @@ class HtmlPredicate(Predicate):
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.apply})"
 
 
 class KeywordPredicate(Predicate):
     keyword_sets: list[set[str]]  # An instance of each must occur
 
-    def __str__(self):
+    def __repr__(self):
         return self.__class__.__name__ + "(" + " ".join([f"{{{next(iter(keyword_set))} ... }}" for keyword_set in self.keyword_sets]) + ")"
 
 
@@ -43,7 +44,7 @@ class KeywordTokenPredicate(Predicate):
 class KeywordSearchPredicate(Predicate):
     # N.B. Slower as it searches text rather than set.
     def __init__(self, *keyword_sets: set[str], constant_weight: float = 0., scaling_weight: float = 1.):
-        self.keywords_sets = keyword_sets
+        self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
 
@@ -65,7 +66,7 @@ class TldPredicate(Predicate):
 
         self.apply = lambda tld: self.tld == tld
 
-    def __str__(self):
+    def __repr__(self):
         return f"{self.__class__.__name__}({self.tld})"
 
 
@@ -73,6 +74,9 @@ class Score:
     def __init__(self, value: float, matched_predicates: list[Predicate]):
         self.value = value
         self.matched_predicates = matched_predicates
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.value:.3f}, {self.matched_predicates})"
 
 
 class _ScoreBuilder:
@@ -85,7 +89,7 @@ class _ScoreBuilder:
         self.matched_predicates.append(predicate)
 
     def apply_weights(self, constant_weight: float, scaling_weight: float) -> None:
-        self.value *= constant_weight
+        self.value += constant_weight
         self.value *= scaling_weight
 
     def get_score(self, percentile_90: float) -> Score:
@@ -107,9 +111,10 @@ class PageScorer:
         sb = _ScoreBuilder()
 
         for predicate in self.predicates:
-            is_match = predicate.apply(soup) \
-                if type(predicate) is HtmlPredicate \
-                else predicate.apply(page_words)
+            if type(predicate) is HtmlPredicate:
+                is_match = predicate.apply(soup)
+            elif type(predicate) is KeywordTokenPredicate:
+                is_match = predicate.apply(page_words)
 
             if is_match:
                 sb.compound(predicate)
@@ -124,15 +129,15 @@ class PageScorer:
         return page_text
 
 
-class URLScorer:
-    def __init__(self, predicates: list[TldPredicate | KeywordSearchPredicate], percentile_90: float, parent_factor: float):
+class LinkScorer:
+    def __init__(self, percentile_90: float, parent_factor: float, predicates: list[TldPredicate | KeywordSearchPredicate]):
         self.predicates = predicates
         self.percentile_90 = percentile_90
         self.parent_factor = parent_factor
 
-    def get_score(self, url: str, parent_page_score: int) -> Score:
-        url = url.lower()
-        tld = get_tld(url, fail_silently=True)
+    def get_score(self, link: str, parent_page_score: float) -> Score:
+        link = link.lower()
+        tld = get_tld(link, fail_silently=True, as_object=False)
 
         sb = _ScoreBuilder()
 
@@ -140,7 +145,7 @@ class URLScorer:
             if type(predicate) is TldPredicate and tld:
                 is_match = predicate.apply(tld)
             elif type(predicate) is KeywordSearchPredicate:
-                is_match = predicate.apply(url)
+                is_match = predicate.apply(link)
 
             if is_match:
                 sb.compound(predicate)

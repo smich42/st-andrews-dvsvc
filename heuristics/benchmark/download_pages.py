@@ -2,19 +2,18 @@ import gzip
 import re
 import os
 
-from bs4 import BeautifulSoup
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
 
-dirname = os.path.dirname(__file__)
-urlpath = os.path.join(dirname, "urls.txt")
-outpath = os.path.join(dirname, "pages")
+CURDIRNAME = os.path.dirname(__file__)
+URLFILE_PATH = os.path.join(CURDIRNAME, "urls.txt")
+OUTDIR_PATH = os.path.join(CURDIRNAME, "pages")
 
-if not os.path.exists(outpath):
-    os.makedirs(outpath)
+if not os.path.exists(OUTDIR_PATH):
+    os.makedirs(OUTDIR_PATH)
 
-with open(urlpath, "r") as file:
+with open(URLFILE_PATH, "r") as file:
     urls = file.read().splitlines()
     urls = [url for url in urls if not url.startswith("#")]
 
@@ -44,5 +43,5 @@ for url in urls:
     filename = re.sub(r'[\\/*?:"<>|]', "", filename)
     filename += ".txt"
 
-    with open(os.path.join(outpath, filename), "w") as file:
+    with open(os.path.join(OUTDIR_PATH, filename), "w") as file:
         file.write(page_html)

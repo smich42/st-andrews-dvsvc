@@ -1,6 +1,7 @@
 *.csv
 *.txt
 .DS_Store
+settings.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
