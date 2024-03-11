@@ -10,14 +10,22 @@ from heuristics.helpers import logistic00
 class Predicate:
     constant_weight: float
     scaling_weight: float
+    topic: int
     apply: Callable[[Any], bool]
 
 
 class HtmlPredicate(Predicate):
-    def __init__(self, apply: Callable[[BeautifulSoup], bool], constant_weight: float = 0., scaling_weight: float = 1.):
+    def __init__(
+        self,
+        apply: Callable[[BeautifulSoup], bool],
+        constant_weight: float = 0.0,
+        scaling_weight: float = 1.0,
+        topic: int = 0,
+    ):
         self.apply = apply
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
+        self.topic = topic
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.apply})"
@@ -27,42 +35,75 @@ class KeywordPredicate(Predicate):
     keyword_sets: list[set[str]]  # An instance of each must occur
 
     def __str__(self):
-        return self.__class__.__name__ + "(" + " ".join([f"{{{next(iter(keyword_set))} ... }}" for keyword_set in self.keyword_sets]) + ")"
+        return (
+            self.__class__.__name__
+            + "("
+            + " ".join(
+                [
+                    f"{{{next(iter(keyword_set))} ... }}"
+                    for keyword_set in self.keyword_sets
+                ]
+            )
+            + ")"
+        )
 
 
 class KeywordTokenPredicate(Predicate):
-    def __init__(self, *keyword_sets: set[str], constant_weight: float = 0., scaling_weight: float = 1.):
+    def __init__(
+        self,
+        *keyword_sets: set[str],
+        constant_weight: float = 0.0,
+        scaling_weight: float = 1.0,
+        topic: int = 0,
+    ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
+        self.topic = topic
 
-        self.apply = lambda page_words: all(any(keyword in page_words
-                                                for keyword in keyword_set)
-                                            for keyword_set in self.keyword_sets)
+        self.apply = lambda page_words: all(
+            any(keyword in page_words for keyword in keyword_set)
+            for keyword_set in self.keyword_sets
+        )
 
 
 class KeywordSearchPredicate(Predicate):
     # N.B. Slower as it searches text rather than set.
-    def __init__(self, *keyword_sets: set[str], constant_weight: float = 0., scaling_weight: float = 1.):
+    def __init__(
+        self,
+        *keyword_sets: set[str],
+        constant_weight: float = 0.0,
+        scaling_weight: float = 1.0,
+        topic: int = 0,
+    ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
+        self.topic = topic
 
-        self.apply = lambda page_text: all(any(keyword in page_text
-                                               for keyword in keyword_set)
-                                           for keyword_set in self.keyword_sets)
+        self.apply = lambda page_text: all(
+            any(keyword in page_text for keyword in keyword_set)
+            for keyword_set in self.keyword_sets
+        )
 
 
 class TldPredicate(Predicate):
     tld: str  # e.g. "org" or "gov.uk"
 
-    def __init__(self, tld: str, constant_weight: float = 0., scaling_weight: float = 1.):
+    def __init__(
+        self,
+        tld: str,
+        constant_weight: float = 0.0,
+        scaling_weight: float = 1.0,
+        topic: int = 0,
+    ):
         if tld.startswith("."):  # Remove leading full stop
             tld = tld[1:]
 
         self.tld = tld
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
+        self.topic = topic
 
         self.apply = lambda tld: self.tld == tld
 
@@ -93,14 +134,22 @@ class _ScoreBuilder:
         self.value *= scaling_weight
 
     def get_score(self, percentile_90: float) -> Score:
-        return Score(logistic00(self.value, (percentile_90, 0.9)),
-                     self.matched_predicates)
+        return Score(
+            logistic00(self.value, (percentile_90, 0.9)), self.matched_predicates
+        )
 
 
 class PageScorer:
-    def __init__(self, percentile_90: float, word_count_factor: float, predicates: list[HtmlPredicate | KeywordTokenPredicate]):
+    def __init__(
+        self,
+        percentile_90: float,
+        word_count_factor: float,
+        topic_count_factor: float,
+        predicates: list[HtmlPredicate | KeywordTokenPredicate],
+    ):
         self.percentile_90 = percentile_90
         self.word_count_factor = word_count_factor
+        self.topic_count_factor = topic_count_factor
         self.predicates = predicates
 
     def get_score(self, page_html: str) -> Score:
@@ -110,6 +159,7 @@ class PageScorer:
         page_words = set(page_text.split(" "))
 
         sb = _ScoreBuilder()
+        topics = set()
 
         for predicate in self.predicates:
             if type(predicate) is HtmlPredicate:
@@ -119,21 +169,27 @@ class PageScorer:
 
             if is_match:
                 sb.compound(predicate)
+            topics.add(predicate.topic)
 
-        sb.apply_weights(len(page_words) * self.word_count_factor, 1.)
+        sb.apply_weights(len(page_words) * self.word_count_factor, 1.0)
+        sb.apply_weights(len(topics) * self.topic_count_factor, 1.0)
 
         return sb.get_score(self.percentile_90)
 
     def _clean_text(self, page_text: str) -> str:
         page_text = page_text.strip().lower()
-        page_text = re.sub(
-            r"[`!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?~]+", " ", page_text)
+        page_text = re.sub(r"[`!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?~]+", " ", page_text)
         page_text = re.sub(r"\s+", " ", page_text)
         return page_text
 
 
 class LinkScorer:
-    def __init__(self, percentile_90: float, parent_factor: float, predicates: list[TldPredicate | KeywordSearchPredicate]):
+    def __init__(
+        self,
+        percentile_90: float,
+        parent_factor: float,
+        predicates: list[TldPredicate | KeywordSearchPredicate],
+    ):
         self.predicates = predicates
         self.percentile_90 = percentile_90
         self.parent_factor = parent_factor
@@ -153,6 +209,6 @@ class LinkScorer:
             if is_match:
                 sb.compound(predicate)
 
-        sb.apply_weights(self.parent_factor * parent_page_score, 1.)
+        sb.apply_weights(self.parent_factor * parent_page_score, 1.0)
 
         return sb.get_score(self.percentile_90)

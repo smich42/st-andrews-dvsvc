@@ -1,5 +1,5 @@
 *.csv
-*.txt
+heuristics/benchmark/pages
 .DS_Store
 settings.json
 

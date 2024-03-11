@@ -27,8 +27,7 @@ def run_pages():
             t = time.time()
             score = PAGE_SCORER.get_score(page_html)
 
-            print("[%2dms] %s, %s" %
-                  (1000 * (time.time() - t), filename, score.value))
+            print("[%2dms] %s, %s" % (1000 * (time.time() - t), filename, score.value))
 
             results.append((filename, score.value, score.matched_predicates))
 
@@ -37,13 +36,13 @@ def run_pages():
         writer.writerow(["Filename", "Page score", "Keywords"])
         writer.writerows(results)
 
-    print("Mean pscore:", sum(
-        [score for _, score, _ in results]) / len(results))
+    print("Mean pscore:", sum([score for _, score, _ in results]) / len(results))
     print("Least pscore:", min([score for _, score, _ in results]))
     print("Greatest pscore:", max([score for _, score, _ in results]))
     print("Total pages:", len(results))
     pscore_under_09 = [
-        (filename, score) for filename, score, _ in results if score < 0.9]
+        (filename, score) for filename, score, _ in results if score < 0.9
+    ]
     print("pscore < 0.9:", len(pscore_under_09), pscore_under_09)
 
 
@@ -61,8 +60,7 @@ def run_links():
     print("Least lscore:", min(scores.values()))
     print("Greatest lscore:", max(scores.values()))
     print("Total links:", len(scores))
-    lscore_under_09 = [
-        (url, score) for url, score in scores.items() if score < 0.9]
+    lscore_under_09 = [(url, score) for url, score in scores.items() if score < 0.9]
     print("lscore < 0.9:", len(lscore_under_09), lscore_under_09)
 
 

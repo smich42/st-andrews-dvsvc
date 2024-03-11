@@ -19,18 +19,18 @@ with open(URLFILE_PATH, "r") as file:
 
 for url in urls:
     try:
-        req = Request(
-            url=url,
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
+        req = Request(url=url, headers={"User-Agent": "Mozilla/5.0"})
         resp = urlopen(req)
         print("Downloaded", url)
     except URLError as e:
         print(f"Failed to download {url} - ", str(e))
         continue
 
-    page_html = gzip.decompress(resp.read()) if resp.headers.get(
-        "Content-Encoding") == "gzip" else resp.read()
+    page_html = (
+        gzip.decompress(resp.read())
+        if resp.headers.get("Content-Encoding") == "gzip"
+        else resp.read()
+    )
 
     page_charset = resp.headers.get_content_charset()
     if page_charset:
@@ -38,8 +38,7 @@ for url in urls:
     else:
         page_html = page_html.decode("utf-8")
 
-    filename = url.replace("https:", "").replace(
-        "http:", "").replace("www.", "")
+    filename = url.replace("https:", "").replace("http:", "").replace("www.", "")
     filename = re.sub(r'[\\/*?:"<>|]', "", filename)
     filename += ".txt"
 
