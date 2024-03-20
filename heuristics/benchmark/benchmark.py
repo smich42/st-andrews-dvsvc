@@ -25,7 +25,7 @@ def run_pages():
             page_html = file.read()
 
             t = time.time()
-            score = PAGE_SCORER.get_score(page_html)
+            score = PAGE_SCORER.score(page_html)
 
             print("[%2dms] %s, %s" % (1000 * (time.time() - t), filename, score.value))
 
@@ -54,7 +54,7 @@ def run_links():
     scores = {}
 
     for url in urls:
-        scores[url] = LINK_SCORER.get_score(url, 0).value
+        scores[url] = LINK_SCORER.score(url, 0).value
 
     print("Mean lscore:", sum(scores.values()) / len(scores))
     print("Least lscore:", min(scores.values()))

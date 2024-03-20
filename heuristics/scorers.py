@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Collection
 from bs4 import BeautifulSoup
 from tld import get_tld
 from typing import Any
@@ -32,7 +32,7 @@ class HtmlPredicate(Predicate):
 
 
 class KeywordPredicate(Predicate):
-    keyword_sets: list[set[str]]  # An instance of each must occur
+    keyword_sets: Collection[set[str]]  # An instance of each must occur
 
     def __str__(self):
         return (
@@ -48,43 +48,63 @@ class KeywordPredicate(Predicate):
         )
 
 
-class KeywordTokenPredicate(Predicate):
+class KeywordTokenPredicate(KeywordPredicate):
     def __init__(
         self,
         *keyword_sets: set[str],
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
+        required_occurrences: int = 1,
         topic: int = 0,
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
+        self.required_occurrences = required_occurrences
         self.topic = topic
 
-        self.apply = lambda page_words: all(
-            any(keyword in page_words for keyword in keyword_set)
-            for keyword_set in self.keyword_sets
-        )
+    def apply(self, page_words: set[str]) -> bool:
+        for keyword_set in self.keyword_sets:
+            occurrences = 0
+            for keyword in keyword_set:
+                if keyword in page_words:
+                    occurrences += 1
+                if occurrences >= self.required_occurrences:
+                    break
+            else:
+                # Fail if not all keyword sets have enough occurrences
+                return False
+        return True
 
 
-class KeywordSearchPredicate(Predicate):
+class KeywordSearchPredicate(KeywordPredicate):
     # N.B. Slower as it searches text rather than set.
     def __init__(
         self,
         *keyword_sets: set[str],
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
+        required_occurrences: int = 1,
         topic: int = 0,
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
+        self.required_occurrences = required_occurrences
         self.topic = topic
 
-        self.apply = lambda page_text: all(
-            any(keyword in page_text for keyword in keyword_set)
-            for keyword_set in self.keyword_sets
-        )
+    def apply(self, page_text: str) -> bool:
+        for keyword_set in self.keyword_sets:
+            occurrences = 0
+            for keyword in keyword_set:
+                if keyword in page_text:
+                    occurrences += 1
+                if occurrences >= self.required_occurrences:
+                    break
+            else:
+                # Fail if not all keyword sets have enough occurrences
+                return False
+        return True
 
 
 class TldPredicate(Predicate):
@@ -117,7 +137,7 @@ class Score:
         self.matched_predicates = matched_predicates
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.value:.3f}, {self.matched_predicates})"
+        return f"{self.__class__.__name__}({self.value:.3f}, {[str(p) for p in self.matched_predicates]})"
 
 
 class _ScoreBuilder:
@@ -152,7 +172,7 @@ class PageScorer:
         self.topic_count_factor = topic_count_factor
         self.predicates = predicates
 
-    def get_score(self, page_html: str) -> Score:
+    def score(self, page_html: str) -> Score:
         soup = BeautifulSoup(page_html, "html.parser")
 
         page_text = self._clean_text(soup.get_text())
@@ -194,7 +214,7 @@ class LinkScorer:
         self.percentile_90 = percentile_90
         self.parent_factor = parent_factor
 
-    def get_score(self, link: str, parent_page_score: float) -> Score:
+    def score(self, link: str, parent_page_score: float) -> Score:
         link = link.lower()
         tld = get_tld(link, fail_silently=True, as_object=False)
 
