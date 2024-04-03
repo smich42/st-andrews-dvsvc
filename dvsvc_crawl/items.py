@@ -6,10 +6,17 @@
 from scrapy import Item, Field
 
 
-class CandidatePage(Item):
+class DVSVCPage(Item):
     link = Field()
     pscore = Field()
     time_crawled = Field()
 
     def __str__(self):
         return f"{self.__class__.__name__}({self['link']}, {self['pscore']})"
+
+
+class DVSVCPageSet(Item):
+    pages = Field()
+
+    def __str__(self):
+        return f"{self.__class__.__name__}({self['pages']})"

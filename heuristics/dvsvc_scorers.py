@@ -2,7 +2,7 @@ from enum import IntEnum
 import os
 from bs4 import BeautifulSoup
 
-from heuristics.helpers import read_csv
+from heuristics.helpers import read_csv_as_dict
 from heuristics.scorers import (
     HtmlPredicate,
     KeywordSearchPredicate,
@@ -112,7 +112,7 @@ def get_link_scorer() -> LinkScorer:
 
 
 def get_page_scorer() -> PageScorer:
-    SCOTTISH_CHARITIES = read_csv(
+    SCOTTISH_CHARITIES = read_csv_as_dict(
         os.path.join(__CURDIRNAME, "Scot-CharityExport-09-Mar-2024.csv")
     )
 
@@ -374,7 +374,7 @@ def get_page_scorer() -> PageScorer:
             constant_weight=-10,
         ),
         KeywordTokenPredicate(set(SCOTTISH_CHARITIES.keys()), constant_weight=20),
-        HtmlPredicate(_has_quick_exit, constant_weight=10, scaling_weight=1),
+        HtmlPredicate(_has_quick_exit, constant_weight=10),
     ]
 
     return PageScorer(25, -0.01, 0, PAGE_PREDICATES)

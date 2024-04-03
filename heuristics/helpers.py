@@ -2,7 +2,10 @@ import csv
 from math import exp, log, e as EULER
 
 
-def read_csv(csv_file) -> dict[str, list[str]]:
+def read_csv_as_dict(csv_file) -> dict[str, list[str]]:
+    """
+    Reads a CSV file into a dictionary mapping the first column of each row to the rest of the row.
+    """
     data = {}
 
     with open(csv_file, "r") as file:
@@ -25,6 +28,6 @@ def logistic00(
         raise ValueError(
             "The second value of fit_to_point must be strictly between 0 and 1"
         )
-    # Determine the constant a to fit through the given point
+    # Determine the constant `a` to fit logistic curve through the given point
     a = -log((1 - fit_to_point[1]) / (1 + fit_to_point[1])) / fit_to_point[0]
     return 2 / (1 + exp(-a * x)) - 1

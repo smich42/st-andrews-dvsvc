@@ -1,14 +1,14 @@
-import random
 from scrapy import Request, signals
 from scrapy.spiders.crawl import CrawlSpider
 from scrapy.linkextractors import LinkExtractor
 
 from expiringdict import ExpiringDict
 from collections import deque
-from tld import get_tld
+import tld
+import typing
 
 from dvsvc_crawl.spiders import get_logger
-from dvsvc_crawl.items import CandidatePage
+from dvsvc_crawl.items import DVSVCPage, DVSVCPageSet
 from heuristics import dvsvc_scorers
 
 
@@ -16,27 +16,43 @@ LOGGER = get_logger()
 LINK_SCORER = dvsvc_scorers.get_link_scorer()
 PAGE_SCORER = dvsvc_scorers.get_page_scorer()
 
-EXCEPTIONAL_PSCORE = 0.95  # TODO Impossible
+SUFFICIENT_PSCORE = 0.95  # A sufficient pscore to immediately itemise a page
 
-GOOD_PSCORE = 0.80
-GOOD_PSCORE_PROPORTION = 0.5
-ENOUGH_PSCORE_SAMPLES = 5
+NECESSARY_PSCORE = 0.80  # A necessary pscore to consider itemising as part of a page set for the same fld
+NECESSARY_FLD_RATIO = 0.5  # The minimum ratio of good pscores to total pscores needed
+NECESSARY_FLD_SAMPLES = 2  # The minimum number of samples needed
 
 # Cache a visit count and good-pscore count for each domain
-DOMAIN_PSCORES_CACHE = ExpiringDict(
+FLD_HISTORIES = ExpiringDict(
     max_len=1_000_000, max_age_seconds=60.0 * 60.0 * 24.0  # 24-hour expiry
 )
 
 
 def lscore_to_prio(lscore: float) -> int:
-    # if lscore > 0.8:
-    #     return 3
-    # elif lscore > 0.6:
-    #     return 2
-    # elif lscore > 0.4:
-    #     return 1
-    # return 0
     return int(lscore * 10)
+
+
+class FLDHistory:
+    good_pages: list[DVSVCPage]  # We expect the size of this to not increase much
+    total_pages: int
+
+    def __init__(self):
+        self.good_pages = []
+        self.total_pages = 0
+
+    def add_score(self, link: str, pscore: float, time_crawled: str):
+        # No need to test URLs for having the same FLD
+        self.total_pages += 1
+        if pscore >= NECESSARY_PSCORE:
+            self.good_pages.append(
+                DVSVCPage(link=link, pscore=pscore, time_crawled=time_crawled)
+            )
+
+    def has_necessary_fld_ratio(self) -> float:
+        return (
+            self.total_pages >= NECESSARY_FLD_SAMPLES
+            and len(self.good_pages) / self.total_pages >= NECESSARY_FLD_RATIO
+        )
 
 
 class DvsvcSpider(CrawlSpider):
@@ -67,7 +83,6 @@ class DvsvcSpider(CrawlSpider):
         pscore = PAGE_SCORER.score(response.text)
 
         links = list(LinkExtractor().extract_links(response))
-        random.shuffle(links)
 
         for link in links:
             # Yield new request
@@ -81,37 +96,23 @@ class DvsvcSpider(CrawlSpider):
                 self.crawler.stats.inc_value("total_requests")
 
         # Itemise immediately for exceptional pscore
-        if pscore.value >= EXCEPTIONAL_PSCORE:
-            yield CandidatePage(
+        if pscore.value >= SUFFICIENT_PSCORE:
+            yield DVSVCPage(
                 link=response.url, pscore=pscore, time_crawled=response.headers["Date"]
             )
 
-        # Otherwise, itemise if the proportion of good pscores is high and we have enough samples
-        domain = get_tld(response.url, as_object=True).fld
-        domain_pscores = (
-            # Default to 0 visits, 0 good pscores
-            DOMAIN_PSCORES_CACHE[domain]
-            if domain in DOMAIN_PSCORES_CACHE
-            else (0, 0)
+        # Consider itemising set of pages of the same fld
+        fld = typing.cast(tld.Result, tld.get_tld(response.url, as_object=True)).fld
+        fld_history = typing.cast(
+            FLDHistory, FLD_HISTORIES[fld] if fld in FLD_HISTORIES else FLDHistory()
         )
-        # Increment pscores for the domain
-        domain_pscores = (
-            domain_pscores[0] + 1,
-            domain_pscores[1] + int(pscore.value >= GOOD_PSCORE),
-        )
-        if (
-            domain_pscores[0] > ENOUGH_PSCORE_SAMPLES
-            and domain_pscores[1] / domain_pscores[0] >= GOOD_PSCORE_PROPORTION
-        ):
-            DOMAIN_PSCORES_CACHE[domain] = (
-                0,
-                0,
-            )  # TODO: Entirely stop requests to the domain
-            yield CandidatePage(
-                link=domain, pscore=pscore, time_crawled=response.headers["Date"]
-            )
+        fld_history.add_score(response.url, pscore.value, response.headers["Date"])
+
+        if fld_history.has_necessary_fld_ratio():
+            FLD_HISTORIES.pop(fld)
+            yield DVSVCPageSet(pages=fld_history.good_pages)
         else:
-            DOMAIN_PSCORES_CACHE[domain] = domain_pscores
+            FLD_HISTORIES[fld] = fld_history
 
     def request_scheduled(self, request, spider):
         if not self.log_lscores or not self.crawler.stats:
