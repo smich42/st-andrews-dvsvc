@@ -21,18 +21,24 @@ class HtmlPredicate(Predicate):
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
         topic: int = 0,
+        alias: str = "",
     ):
         self.apply = apply
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.topic = topic
+        self.alias = alias
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.apply})"
+        return (
+            "HTML-" + self.alias
+            if self.alias
+            else f"{self.__class__.__name__}({self.apply})"
+        )
 
 
 class KeywordPredicate(Predicate):
-    keyword_sets: Collection[set[str]]  # An instance of each must occur
+    keyword_sets: Collection[set[str]]  # At least one keyword from each set must occur
 
     def __str__(self):
         return (
@@ -56,12 +62,14 @@ class KeywordTokenPredicate(KeywordPredicate):
         scaling_weight: float = 1.0,
         required_occurrences: int = 1,
         topic: int = 0,
+        alias: str = "",
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.required_occurrences = required_occurrences
         self.topic = topic
+        self.alias = alias
 
     def apply(self, page_words: set[str]) -> bool:
         for keyword_set in self.keyword_sets:
@@ -76,6 +84,9 @@ class KeywordTokenPredicate(KeywordPredicate):
                 return False
         return True
 
+    def __str__(self):
+        return "KW-" + self.alias if self.alias else super().__str__()
+
 
 class KeywordSearchPredicate(KeywordPredicate):
     # N.B. Slower as it searches text rather than set.
@@ -86,12 +97,14 @@ class KeywordSearchPredicate(KeywordPredicate):
         scaling_weight: float = 1.0,
         required_occurrences: int = 1,
         topic: int = 0,
+        alias: str = "",
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.required_occurrences = required_occurrences
         self.topic = topic
+        self.alias = alias
 
     def apply(self, page_text: str) -> bool:
         for keyword_set in self.keyword_sets:
@@ -106,6 +119,9 @@ class KeywordSearchPredicate(KeywordPredicate):
                 return False
         return True
 
+    def __str__(self):
+        return "KW-" + self.alias if self.alias else super().__str__()
+
 
 class TldPredicate(Predicate):
     tld: str  # e.g. "org" or "gov.uk"
@@ -116,6 +132,7 @@ class TldPredicate(Predicate):
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
         topic: int = 0,
+        alias: str = "",
     ):
         if tld.startswith("."):  # Remove leading full stop
             tld = tld[1:]
@@ -124,11 +141,15 @@ class TldPredicate(Predicate):
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.topic = topic
-
+        self.alias = alias
         self.apply = lambda tld: self.tld == tld
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.tld})"
+        return (
+            "TLD-" + self.alias
+            if self.alias
+            else f"{self.__class__.__name__}({self.tld})"
+        )
 
 
 class Score:

@@ -2,7 +2,6 @@
 heuristics/benchmark/pages
 .DS_Store
 settings.json
-my_run.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
