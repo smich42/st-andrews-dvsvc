@@ -1,7 +1,7 @@
 *.csv
-heuristics/benchmark/pages
+.vscode/
 .DS_Store
-settings.json
+heuristics/benchmark/pages
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
