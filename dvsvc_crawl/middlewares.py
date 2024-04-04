@@ -8,11 +8,11 @@ from scrapy.exceptions import IgnoreRequest
 from scrapy.http import Response
 
 from dvsvc_crawl import helpers
-from dvsvc_crawl.spiders import get_dvsvc_logger
+from dvsvc_crawl.spiders import get_spiders_logger
 
 FLD_BAD_RESPONSES_ALLOWED = 10
 
-LOGGER = get_dvsvc_logger()
+LOGGER = get_spiders_logger()
 
 
 class DvsvcBlacklistMiddleware:

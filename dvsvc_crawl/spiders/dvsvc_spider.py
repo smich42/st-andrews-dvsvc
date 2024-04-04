@@ -8,12 +8,12 @@ import tld
 import typing
 
 from dvsvc_crawl import helpers
-from dvsvc_crawl.spiders import get_dvsvc_logger
+from dvsvc_crawl.spiders import get_spiders_logger
 from dvsvc_crawl.items import DvsvcPage, DvsvcPageSet
 from heuristics import dvsvc_scorers
 
 
-LOGGER = get_dvsvc_logger()
+LOGGER = get_spiders_logger()
 LINK_SCORER = dvsvc_scorers.get_link_scorer()
 PAGE_SCORER = dvsvc_scorers.get_page_scorer()
 

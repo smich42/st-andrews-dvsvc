@@ -5,14 +5,14 @@
 
 import logging
 
-_SPIDER_LOGGER = None
+_SPIDERS_LOGGER = None
 
 
-def get_dvsvc_logger() -> logging.Logger:
-    global _SPIDER_LOGGER
+def get_spiders_logger() -> logging.Logger:
+    global _SPIDERS_LOGGER
 
-    if _SPIDER_LOGGER:
-        return _SPIDER_LOGGER
+    if _SPIDERS_LOGGER:
+        return _SPIDERS_LOGGER
 
     fh = logging.FileHandler("dvsvc_crawl.log")
     fh.setLevel(logging.INFO)
@@ -20,7 +20,7 @@ def get_dvsvc_logger() -> logging.Logger:
         logging.Formatter("%(name)s - %(asctime)s - %(levelname)s - %(message)s")
     )
 
-    _SPIDER_LOGGER = logging.getLogger("dvsvc-spiders")
-    _SPIDER_LOGGER.addHandler(fh)
+    _SPIDERS_LOGGER = logging.getLogger("dvsvc-spiders")
+    _SPIDERS_LOGGER.addHandler(fh)
 
-    return _SPIDER_LOGGER
+    return _SPIDERS_LOGGER
