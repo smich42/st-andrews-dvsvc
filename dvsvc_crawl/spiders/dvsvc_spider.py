@@ -7,12 +7,13 @@ from collections import deque
 import tld
 import typing
 
-from dvsvc_crawl.spiders import get_logger
-from dvsvc_crawl.items import DVSVCPage, DVSVCPageSet
+from dvsvc_crawl import helpers
+from dvsvc_crawl.spiders import get_dvsvc_logger
+from dvsvc_crawl.items import DvsvcPage, DvsvcPageSet
 from heuristics import dvsvc_scorers
 
 
-LOGGER = get_logger()
+LOGGER = get_dvsvc_logger()
 LINK_SCORER = dvsvc_scorers.get_link_scorer()
 PAGE_SCORER = dvsvc_scorers.get_page_scorer()
 
@@ -33,7 +34,7 @@ def lscore_to_prio(lscore: float) -> int:
 
 
 class FLDHistory:
-    good_pages: list[DVSVCPage]  # We expect the size of this to not increase much
+    good_pages: list[DvsvcPage]  # We expect the size of this to not increase much
     total_pages: int
 
     def __init__(self):
@@ -45,7 +46,7 @@ class FLDHistory:
         self.total_pages += 1
         if pscore >= NECESSARY_PSCORE:
             self.good_pages.append(
-                DVSVCPage(link=link, pscore=pscore, time_crawled=time_crawled)
+                DvsvcPage(link=link, pscore=pscore, time_crawled=time_crawled)
             )
 
     def has_necessary_fld_ratio(self) -> float:
@@ -97,20 +98,20 @@ class DvsvcSpider(CrawlSpider):
 
         # Itemise immediately for exceptional pscore
         if pscore.value >= SUFFICIENT_PSCORE:
-            yield DVSVCPage(
+            yield DvsvcPage(
                 link=response.url, pscore=pscore, time_crawled=response.headers["Date"]
             )
             LOGGER.info(f"Itemised page: {response.url}")
 
         # Consider itemising set of pages of the same fld
-        fld = typing.cast(tld.Result, tld.get_tld(response.url, as_object=True)).fld
+        fld = helpers.get_fld(response.url)
         fld_history = typing.cast(
             FLDHistory, FLD_HISTORIES[fld] if fld in FLD_HISTORIES else FLDHistory()
         )
         fld_history.add_score(response.url, pscore.value, response.headers["Date"])
 
         if fld_history.has_necessary_fld_ratio():
-            yield DVSVCPageSet(pages=fld_history.good_pages)
+            yield DvsvcPageSet(pages=fld_history.good_pages)
             FLD_HISTORIES.pop(fld)
             LOGGER.info(f"Itemised page set for FLD: {fld}")
         else:

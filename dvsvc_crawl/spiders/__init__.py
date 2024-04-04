@@ -8,7 +8,7 @@ import logging
 _SPIDER_LOGGER = None
 
 
-def get_logger() -> logging.Logger:
+def get_dvsvc_logger() -> logging.Logger:
     global _SPIDER_LOGGER
 
     if _SPIDER_LOGGER:
