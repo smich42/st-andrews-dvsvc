@@ -20,7 +20,7 @@ SUFFICIENT_PSCORE = 0.95  # A sufficient pscore to immediately itemise a page
 
 NECESSARY_PSCORE = 0.80  # A necessary pscore to consider itemising as part of a page set for the same fld
 NECESSARY_FLD_RATIO = 0.5  # The minimum ratio of good pscores to total pscores needed
-NECESSARY_FLD_SAMPLES = 2  # The minimum number of samples needed
+NECESSARY_FLD_SAMPLES = 5  # The minimum number of samples needed
 
 # Cache a visit count and good-pscore count for each domain
 FLD_HISTORIES = ExpiringDict(
@@ -100,6 +100,7 @@ class DvsvcSpider(CrawlSpider):
             yield DVSVCPage(
                 link=response.url, pscore=pscore, time_crawled=response.headers["Date"]
             )
+            LOGGER.info(f"Itemised page: {response.url}")
 
         # Consider itemising set of pages of the same fld
         fld = typing.cast(tld.Result, tld.get_tld(response.url, as_object=True)).fld
@@ -109,8 +110,9 @@ class DvsvcSpider(CrawlSpider):
         fld_history.add_score(response.url, pscore.value, response.headers["Date"])
 
         if fld_history.has_necessary_fld_ratio():
-            FLD_HISTORIES.pop(fld)
             yield DVSVCPageSet(pages=fld_history.good_pages)
+            FLD_HISTORIES.pop(fld)
+            LOGGER.info(f"Itemised page set for FLD: {fld}")
         else:
             FLD_HISTORIES[fld] = fld_history
 

@@ -16,9 +16,11 @@ def get_logger() -> logging.Logger:
 
     fh = logging.FileHandler("dvsvc_crawl.log")
     fh.setLevel(logging.INFO)
-    fh.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    fh.setFormatter(
+        logging.Formatter("%(name)s - %(asctime)s - %(levelname)s - %(message)s")
+    )
 
-    _SPIDER_LOGGER = logging.getLogger("spider_logger")
+    _SPIDER_LOGGER = logging.getLogger("dvsvc-spiders")
     _SPIDER_LOGGER.addHandler(fh)
 
     return _SPIDER_LOGGER
