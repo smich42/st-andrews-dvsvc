@@ -21,7 +21,7 @@ class HtmlPredicate(Predicate):
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
         topic: int = 0,
-        alias: str = "",
+        alias: str | None = None,
     ):
         self.apply = apply
         self.constant_weight = constant_weight
@@ -62,7 +62,7 @@ class KeywordTokenPredicate(KeywordPredicate):
         scaling_weight: float = 1.0,
         required_occurrences: int = 1,
         topic: int = 0,
-        alias: str = "",
+        alias: str | None = None,
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
@@ -97,7 +97,7 @@ class KeywordSearchPredicate(KeywordPredicate):
         scaling_weight: float = 1.0,
         required_occurrences: int = 1,
         topic: int = 0,
-        alias: str = "",
+        alias: str | None = None,
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
@@ -132,7 +132,7 @@ class TldPredicate(Predicate):
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
         topic: int = 0,
-        alias: str = "",
+        alias: str | None = None,
     ):
         if tld.startswith("."):  # Remove leading full stop
             tld = tld[1:]

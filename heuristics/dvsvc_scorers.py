@@ -15,12 +15,6 @@ from heuristics.scorers import (
 __CURDIRNAME = os.path.dirname(__file__)
 
 
-class DvsvcTopics(IntEnum):
-    DOMESTIC_VIOLENCE = 0
-    CHARITY = 1
-    SERVICES = 2
-
-
 def _has_quick_exit(soup: BeautifulSoup) -> bool:
     anchors = soup.find_all("a")
     buttons = soup.find_all("button")
@@ -143,9 +137,6 @@ def get_page_scorer() -> PageScorer:
             constant_weight=4,
             alias="SURVIVOR",
         ),
-        # KeywordTokenPredicate(
-        #     {"living", "life", "lives"}, {"free", "fear", "without"}, constant_weight=2
-        # ),
         KeywordTokenPredicate({"referral"}, constant_weight=2, alias="REFERRAL"),
         KeywordTokenPredicate(
             {"sexual", "sexually"},
@@ -163,7 +154,6 @@ def get_page_scorer() -> PageScorer:
             constant_weight=8,
             alias="SEXUAL",
         ),
-        # KeywordTokenPredicate({"economic"}, {"abuse"}, constant_weight=6),
         KeywordTokenPredicate(
             {"homeless", "homelessness"}, constant_weight=2, alias="HOMELESS"
         ),
@@ -178,13 +168,6 @@ def get_page_scorer() -> PageScorer:
             constant_weight=15,
             alias="DOMESTIC-ABUSE",
         ),
-        # KeywordTokenPredicate({"agency", "agencies"}, constant_weight=1),
-        # KeywordTokenPredicate(
-        #     {"help", "helps"}, {"find", "seek", "deal"}, constant_weight=1
-        # ),
-        # KeywordTokenPredicate(
-        #     {"support", "supports"}, {"find", "seek"}, constant_weight=1
-        # ),
         KeywordTokenPredicate(
             {"suffer", "suffering", "suffers", "suffered"},
             constant_weight=1,
@@ -196,7 +179,6 @@ def get_page_scorer() -> PageScorer:
             constant_weight=2,
             alias="POWER",
         ),
-        # KeywordTokenPredicate({"organisation", "organization"}, constant_weight=2),
         KeywordTokenPredicate(
             {"women", "woman"},
             {
@@ -213,10 +195,6 @@ def get_page_scorer() -> PageScorer:
             constant_weight=2,
             alias="WOMAN",
         ),  # Not -hood
-        # KeywordTokenPredicate({"child", "children", "childhood"}, constant_weight=1),
-        # KeywordTokenPredicate({"girl", "girls"}, constant_weight=1),
-        # KeywordTokenPredicate({"boy", "boys"}, constant_weight=1),
-        # KeywordTokenPredicate({"adult", "adulthood"}, constant_weight=1),
         KeywordTokenPredicate(
             {"neglect", "neglected"},
             {"partner", "adult", "child", "childhood", "children"},
@@ -253,8 +231,6 @@ def get_page_scorer() -> PageScorer:
         KeywordTokenPredicate(
             {"community", "communities"}, constant_weight=1, alias="COMMUNITY"
         ),
-        # KeywordTokenPredicate({"coalition", "coalitions"}, constant_weight=1),
-        # KeywordTokenPredicate({"violence"}, constant_weight=4),  # Not violent
         KeywordTokenPredicate(
             {"harass", "harasses", "harassing", "harassment"},
             constant_weight=4,
@@ -269,7 +245,6 @@ def get_page_scorer() -> PageScorer:
         KeywordTokenPredicate(
             {"safe"}, {"room", "rooms"}, constant_weight=5, alias="SAFE-ROOM"
         ),
-        # KeywordTokenPredicate({"champion"}, {"voice", "voices"}, constant_weight=3),
         KeywordTokenPredicate(
             {"trust", "trusts", "trusting", "trusted", "trustworthy"},
             constant_weight=2,
@@ -281,8 +256,6 @@ def get_page_scorer() -> PageScorer:
             constant_weight=5,
             alias="CHARITY",
         ),
-        # KeywordTokenPredicate({"foundation", "foundations"}, constant_weight=2),
-        # KeywordTokenPredicate({"prevent", "prevents"}, constant_weight=1),
         KeywordTokenPredicate(
             {"marriage", "relationship"}, constant_weight=2, alias="RELATIONSHIP"
         ),
@@ -327,7 +300,6 @@ def get_page_scorer() -> PageScorer:
         KeywordTokenPredicate(
             {"stalking", "stalker"}, constant_weight=6, alias="STALKING"
         ),
-        # KeywordTokenPredicate({"worry", "worried"}, constant_weight=1),
         KeywordTokenPredicate(
             {"report", "reporting"},
             {"anonymous", "anonymously"},
