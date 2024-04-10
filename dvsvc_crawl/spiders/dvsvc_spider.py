@@ -4,7 +4,6 @@ from scrapy.linkextractors import LinkExtractor
 
 from expiringdict import ExpiringDict
 from collections import deque
-import tld
 import typing
 
 from dvsvc_crawl import helpers
