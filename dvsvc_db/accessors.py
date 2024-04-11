@@ -50,7 +50,7 @@ def insert_crawl_item_batch(
     with conn.cursor() as cursor:
         cursor.execute(
             "insert into crawl_item_batch (time_batched) values (%s) returning id",
-            (time_batched.isoformat(),),
+            (time_batched.isoformat() if time_batched else None),
         )
         batch_id = cursor.fetchone()[0]
 
