@@ -47,7 +47,7 @@ def insert_crawl_item_batch(
     times_queued: tuple[datetime | None],
     times_crawled: tuple[datetime | None],
 ) -> int:
-    with conn.cursor as cursor:
+    with conn.cursor() as cursor:
         cursor.execute(
             "insert into crawl_item_batch (time_batched) values (%s) returning id",
             (time_batched,),
