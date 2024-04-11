@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: dvsvc
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:${DB_DATA_PATH}
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5051:80"
+    depends_on:
+      - db
+
+  app:
+    build: .
+    command: scrapy crawl dvsvc
+    volumes:
+      - .:/app/
+    ports:
+      - "5445:5445"
+    depends_on:
+      - db
+
+volumes:
+  db_data:
