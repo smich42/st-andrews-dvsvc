@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - db_data:${DB_DATA_PATH}
+      - db_data:/var/lib/postgresql/data
 
   pgadmin:
     image: dpage/pgadmin4
@@ -19,12 +19,13 @@ services:
       - "5051:80"
     depends_on:
       - db
-
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
   app:
     build: .
     command: scrapy crawl dvsvc
     volumes:
-      - .:/app/
+      - .:/app
     ports:
       - "5445:5445"
     depends_on:
@@ -37,3 +38,4 @@ services:
 
 volumes:
   db_data:
+  pgadmin_data:
