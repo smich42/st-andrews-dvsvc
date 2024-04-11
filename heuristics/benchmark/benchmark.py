@@ -3,12 +3,14 @@ import csv
 import sys
 import time
 
-CURDIRNAME = os.path.dirname(__file__)
-PAGESDIR_PATH = os.path.join(CURDIRNAME, "pages")
-URLFILE_PATH = os.path.join(CURDIRNAME, "urls.txt")
-OUTCSV_PATH = os.path.join(CURDIRNAME, "scores.csv")
+THIS_PATH = os.path.dirname(__file__)
+DATA_PATH = os.path.join(THIS_PATH, "..", "..", "data", "benchmark")
 
-sys.path.append(os.path.join(CURDIRNAME, "..", ".."))
+PAGES_PATH = os.path.join(DATA_PATH, "pages")
+URLFILE_PATH = os.path.join(DATA_PATH, "urls.txt")
+OUTFILE_PATH = os.path.join(DATA_PATH, "scores.csv")
+
+sys.path.append(os.path.join(THIS_PATH, "..", ".."))
 from heuristics.dvsvc_scorers import get_link_scorer, get_page_scorer
 
 PAGE_SCORER = get_page_scorer()
@@ -18,8 +20,8 @@ LINK_SCORER = get_link_scorer()
 def run_pages():
     results = []
 
-    for filename in os.listdir(PAGESDIR_PATH):
-        filepath = os.path.join(PAGESDIR_PATH, filename)
+    for filename in os.listdir(PAGES_PATH):
+        filepath = os.path.join(PAGES_PATH, filename)
 
         with open(filepath, "r") as file:
             page_html = file.read()
@@ -31,7 +33,7 @@ def run_pages():
 
             results.append((filename, score.value, score.matched_predicates))
 
-    with open(OUTCSV_PATH, "w", newline="") as file:
+    with open(OUTFILE_PATH, "w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(["Filename", "Page score", "Keywords"])
         writer.writerows(results)

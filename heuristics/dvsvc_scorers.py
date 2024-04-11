@@ -12,6 +12,14 @@ from heuristics.scorers import (
 )
 
 __CURDIRNAME = os.path.dirname(__file__)
+__SCOT_CHARITIES_PATH = os.path.join(
+    __CURDIRNAME, "..", "data", "Scot-CharityExport-09-Mar-2024.csv"
+)
+
+if not os.path.exists(__SCOT_CHARITIES_PATH):
+    raise FileNotFoundError(
+        f"Could not find Scottish charities register at {__SCOT_CHARITIES_PATH}"
+    )
 
 
 def _has_quick_exit(soup: BeautifulSoup) -> bool:
@@ -105,11 +113,9 @@ def get_link_scorer() -> LinkScorer:
 
 
 def get_page_scorer() -> PageScorer:
-    SCOTTISH_CHARITIES = read_csv_as_dict(
-        os.path.join(__CURDIRNAME, "Scot-CharityExport-09-Mar-2024.csv")
-    )
+    SCOT_CHARITIES = read_csv_as_dict(__SCOT_CHARITIES_PATH)
 
-    print("Loaded charities:", len(SCOTTISH_CHARITIES))
+    print("Loaded charities:", len(SCOT_CHARITIES))
 
     PAGE_PREDICATES = [
         KeywordTokenPredicate(
@@ -405,7 +411,7 @@ def get_page_scorer() -> PageScorer:
             alias="SUB-COMMERCIAL",
         ),
         KeywordTokenPredicate(
-            set(SCOTTISH_CHARITIES.keys()), constant_weight=20, alias="SCOT-CHARITY"
+            set(SCOT_CHARITIES.keys()), constant_weight=20, alias="SCOT-CHARITY"
         ),
         HtmlPredicate(_has_quick_exit, constant_weight=10, alias="QUICK-EXIT"),
     ]

@@ -3,6 +3,7 @@
 .DS_Store
 heuristics/benchmark/pages
 extract_domains.py
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
