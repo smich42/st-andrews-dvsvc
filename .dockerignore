@@ -1,10 +1,10 @@
 logs/
-*.log
+**.log
 
-__pycache__/
-*.pyc
+**/__pycache__/
+**.pyc
 
 .git
 .gitignore
 
-*.env
+**.env
