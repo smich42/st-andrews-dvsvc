@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from scrapy import Request, signals
 from scrapy.spiders.crawl import CrawlSpider
 from scrapy.linkextractors import LinkExtractor
@@ -8,8 +9,9 @@ import typing
 
 from dvsvc_crawl import helpers
 from dvsvc_crawl.spiders import get_spiders_logger
-from dvsvc_crawl.items import DvsvcPage, DvsvcPageSet
+from dvsvc_crawl.items import DvsvcCrawlItem, DvsvcCrawlBatch
 from heuristics import dvsvc_scorers
+from heuristics.scorers import Score
 
 
 LOGGER = get_spiders_logger()
@@ -24,7 +26,7 @@ NECESSARY_FLD_SAMPLES = 5  # The minimum number of samples needed
 
 # Cache a visit count and good-pscore count for each domain
 FLD_HISTORIES = ExpiringDict(
-    max_len=1_000_000, max_age_seconds=60.0 * 60.0 * 24.0  # 24-hour expiry
+    max_len=100_000, max_age_seconds=60.0 * 60.0 * 24.0  # 24-hour expiry
 )
 
 
@@ -32,20 +34,39 @@ def lscore_to_prio(lscore: float) -> int:
     return int(lscore * 10)
 
 
-class FLDHistory:
-    good_pages: list[DvsvcPage]  # We expect the size of this to not increase much
+def get_response_time(response: Request) -> datetime:
+    return datetime.strptime(
+        response.headers["Date"].decode("utf-8"), "%a, %d %b %Y %H:%M:%S %Z"
+    )
+
+
+class FLDVisits:
+    good_pages: list[DvsvcCrawlItem]  # We expect the size of this to not increase much
     total_pages: int
 
     def __init__(self):
         self.good_pages = []
         self.total_pages = 0
 
-    def add_score(self, link: str, pscore: float, time_crawled: str):
+    def add_visit(
+        self,
+        link: str,
+        pscore: Score,
+        lscore: Score,
+        time_queued: datetime,
+        time_crawled: datetime,
+    ):
         # No need to test URLs for having the same FLD
         self.total_pages += 1
-        if pscore >= NECESSARY_PSCORE:
+        if pscore.value >= NECESSARY_PSCORE:
             self.good_pages.append(
-                DvsvcPage(link=link, pscore=pscore, time_crawled=time_crawled)
+                DvsvcCrawlItem(
+                    link=link,
+                    pscore=pscore,
+                    lscore=lscore,
+                    time_queued=time_queued,
+                    time_crawled=time_crawled,
+                )
             )
 
     def has_necessary_fld_ratio(self) -> float:
@@ -77,7 +98,12 @@ class DvsvcSpider(CrawlSpider):
             self.crawler.stats.set_value("total_requests", 1)
 
         for url in self.start_urls:
-            yield Request(url, callback=self.parse)
+            yield Request(
+                url,
+                callback=self.parse,
+                priority=0,
+                meta={"lscore": None, "time_queued": datetime.now(timezone.utc)},
+            )
 
     def parse(self, response):
         pscore = PAGE_SCORER.score(response.text)
@@ -88,7 +114,10 @@ class DvsvcSpider(CrawlSpider):
             # Yield new request
             lscore = LINK_SCORER.score(link.url, pscore.value)
             yield Request(
-                link.url, callback=self.parse, priority=lscore_to_prio(lscore.value)
+                link.url,
+                callback=self.parse,
+                priority=lscore_to_prio(lscore.value),
+                meta={"lscore": lscore, "time_queued": datetime.now(timezone.utc)},
             )
             # Update health metrics
             self.log_lscores.append(lscore.value)
@@ -97,20 +126,33 @@ class DvsvcSpider(CrawlSpider):
 
         # Itemise immediately for exceptional pscore
         if pscore.value >= SUFFICIENT_PSCORE:
-            yield DvsvcPage(
-                link=response.url, pscore=pscore, time_crawled=response.headers["Date"]
+            yield DvsvcCrawlItem(
+                link=response.url,
+                pscore=pscore,
+                lscore=response.meta["lscore"],
+                time_queued=response.meta["time_queued"],
+                time_crawled=get_response_time(response),
             )
             LOGGER.info(f"Itemised page: {response.url}")
 
         # Consider itemising set of pages of the same fld
         fld = helpers.get_fld(response.url)
         fld_history = typing.cast(
-            FLDHistory, FLD_HISTORIES[fld] if fld in FLD_HISTORIES else FLDHistory()
+            FLDVisits, FLD_HISTORIES[fld] if fld in FLD_HISTORIES else FLDVisits()
         )
-        fld_history.add_score(response.url, pscore.value, response.headers["Date"])
+        fld_history.add_visit(
+            response.url,
+            pscore,
+            response.meta["lscore"],
+            response.meta["time_queued"],
+            time_crawled=get_response_time(response),
+        )
 
         if fld_history.has_necessary_fld_ratio():
-            yield DvsvcPageSet(pages=fld_history.good_pages)
+            yield DvsvcCrawlBatch(
+                crawl_items=fld_history.good_pages,
+                time_batched=get_response_time(response),
+            )
             FLD_HISTORIES.pop(fld)
             LOGGER.info(f"Itemised page set for FLD: {fld}")
         else:
