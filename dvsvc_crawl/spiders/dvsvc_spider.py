@@ -1,10 +1,12 @@
-from datetime import datetime, timezone
 from scrapy import Request, signals
 from scrapy.spiders.crawl import CrawlSpider
 from scrapy.linkextractors import LinkExtractor
+from scrapy.http.response.text import TextResponse
+from scrapy.http.response import Response
 
 from expiringdict import ExpiringDict
 from collections import deque
+from datetime import datetime, timezone
 import typing
 
 from dvsvc_crawl import helpers
@@ -34,9 +36,9 @@ def lscore_to_prio(lscore: float) -> int:
     return int(lscore * 10)
 
 
-def get_response_time(response: Request) -> datetime:
+def get_response_time(resp: Response) -> datetime:
     return datetime.strptime(
-        response.headers["Date"].decode("utf-8"), "%a, %d %b %Y %H:%M:%S %Z"
+        resp.headers["Date"].decode("utf-8"), "%a, %d %b %Y %H:%M:%S %Z"
     )
 
 
@@ -106,6 +108,9 @@ class DvsvcSpider(CrawlSpider):
             )
 
     def parse(self, response):
+        if not isinstance(response, TextResponse):
+            return
+
         pscore = PAGE_SCORER.score(response.text)
 
         links = list(LinkExtractor().extract_links(response))
