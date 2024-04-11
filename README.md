@@ -4,7 +4,7 @@ A web crawler to identify domestic violence support services in Scotland.
 
 ## Use with Docker
 
-After building the image with `docker-compose build`, run `docker-compose up` to start three containers:
+After building the image with `docker compose build`, run `docker compose up` to start three containers:
 
 * `app` (the crawler)
 * `db` (the PostgreSQL database server)
@@ -12,7 +12,7 @@ After building the image with `docker-compose build`, run `docker-compose up` to
 
 This automatically loads environment variables from `.env` in the project directory. Set one up as per `example.env`.
 
-Access pgAdmin at `localhost:5051/` from a browser (as specified in `compose.yaml`).
+`docker compose run db pgadmin` will only spin up the database and pgAdmin containers. Access pgAdmin at `localhost:5051/` from a browser (as specified in `compose.yaml`).
 
 ## Run just the crawler (without Docker)
 

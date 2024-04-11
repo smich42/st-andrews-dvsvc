@@ -215,7 +215,9 @@ def get_page_scorer() -> PageScorer:
             alias="LGBT",
         ),
         KeywordTokenPredicate({"emergency"}, constant_weight=2, alias="EMERGENCY"),
-        KeywordTokenPredicate({"advisor", "advisors"}, constant_weight=2),
+        KeywordTokenPredicate(
+            {"advisor", "advisors"}, constant_weight=2, alias="ADVISOR"
+        ),
         KeywordTokenPredicate(
             {
                 "counsel",
