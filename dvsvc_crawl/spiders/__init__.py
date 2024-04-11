@@ -1,10 +1,14 @@
 import logging
+import os
 
 _SPIDERS_LOGGER = None
 
 
 def get_spiders_logger() -> logging.Logger:
     global _SPIDERS_LOGGER
+
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
 
     if _SPIDERS_LOGGER:
         return _SPIDERS_LOGGER
