@@ -1,17 +1,17 @@
 import logging
 import os
 
-_SPIDERS_LOGGER = None
+__SPIDERS_LOGGER = None
 
 
 def get_spiders_logger() -> logging.Logger:
-    global _SPIDERS_LOGGER
+    global __SPIDERS_LOGGER
 
     if not os.path.exists("logs"):
         os.makedirs("logs")
 
-    if _SPIDERS_LOGGER:
-        return _SPIDERS_LOGGER
+    if __SPIDERS_LOGGER:
+        return __SPIDERS_LOGGER
 
     fh = logging.FileHandler("logs/dvsvc-spiders.log")
     fh.setLevel(logging.INFO)
@@ -19,7 +19,7 @@ def get_spiders_logger() -> logging.Logger:
         logging.Formatter("%(name)s - %(asctime)s - %(levelname)s - %(message)s")
     )
 
-    _SPIDERS_LOGGER = logging.getLogger("dvsvc-spiders")
-    _SPIDERS_LOGGER.addHandler(fh)
+    __SPIDERS_LOGGER = logging.getLogger("dvsvc-spiders")
+    __SPIDERS_LOGGER.addHandler(fh)
 
-    return _SPIDERS_LOGGER
+    return __SPIDERS_LOGGER

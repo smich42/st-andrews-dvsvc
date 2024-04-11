@@ -4,6 +4,7 @@
 heuristics/benchmark/pages
 extract_domains.py
 data/
+resource/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

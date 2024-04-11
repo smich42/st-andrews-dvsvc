@@ -4,7 +4,7 @@ import sys
 import time
 
 THIS_PATH = os.path.dirname(__file__)
-DATA_PATH = os.path.join(THIS_PATH, "..", "..", "data", "benchmark")
+DATA_PATH = os.path.join(THIS_PATH, "..", "..", "resource", "benchmark")
 
 PAGES_PATH = os.path.join(DATA_PATH, "pages")
 URLFILE_PATH = os.path.join(DATA_PATH, "urls.txt")

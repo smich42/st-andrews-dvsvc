@@ -13,7 +13,7 @@ from heuristics.scorers import (
 
 __CURDIRNAME = os.path.dirname(__file__)
 __SCOT_CHARITIES_PATH = os.path.join(
-    __CURDIRNAME, "..", "data", "Scot-CharityExport-09-Mar-2024.csv"
+    __CURDIRNAME, "..", "resource", "Scot-CharityExport-09-Mar-2024.csv"
 )
 
 if not os.path.exists(__SCOT_CHARITIES_PATH):

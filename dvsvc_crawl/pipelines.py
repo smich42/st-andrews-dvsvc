@@ -1,4 +1,5 @@
 from itemadapter.adapter import ItemAdapter
+from dvsvc_db import connect, accessors
 
 
 class DvsvcCrawlPipeline:
