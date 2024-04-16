@@ -1,6 +1,6 @@
 # st-andrews-dvsvc
 
-A web crawler to identify domestic violence support services in Scotland.
+A web crawler to discover UK-based domestic violence support services.
 
 ## Use with Docker
 
