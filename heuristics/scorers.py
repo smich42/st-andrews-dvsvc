@@ -60,14 +60,14 @@ class KeywordTokenPredicate(KeywordPredicate):
         *keyword_sets: set[str],
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
-        required_occurrences: int = 1,
+        required_occurrences_per_set: int = 1,
         topic: int = 0,
         alias: str | None = None,
     ):
         self.keyword_sets = keyword_sets
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
-        self.required_occurrences = required_occurrences
+        self.required_occurrences = required_occurrences_per_set
         self.topic = topic
         self.alias = alias
 
