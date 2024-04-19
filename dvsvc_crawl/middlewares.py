@@ -55,6 +55,9 @@ _IGNORE_FLDS = {
     "cnn.com",
     "cosmopolitan.com",
     "belfasttelegraph.co.uk",
+    "politics.co.uk",  # Added manually
+    "politicshome.com",  # Added manually
+    "huffingtonpost.co.uk"  # Added manually
     # With some duplicates, https://pressgazette.co.uk/media-audience-and-business-data/media_metrics/most-popular-websites-news-us-monthly-3/
     "nytimes.com",
     "cnn.com",
@@ -106,6 +109,8 @@ _IGNORE_FLDS = {
     "nj.com",
     "usmagazine.com",
     "al.com",
+    "huffingtonpost.com"  # Added manually
+    "huffpost.com"  # Added manually
     # Wikipedia and Wikimedia projects
     "wikipedia.org",
     "wikimedia.org",
@@ -121,6 +126,7 @@ _IGNORE_FLDS = {
     "wikispecies.org",
     # UK government data sources
     "assets.publishing.service.gov.uk",
+    "data.parliament.uk",
     "ons.gov.uk",
     "cy.ons.gov.uk",
 }
