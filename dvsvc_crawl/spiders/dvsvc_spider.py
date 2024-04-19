@@ -330,10 +330,6 @@ class DvsvcSpider(CrawlSpider):
         return spider
 
     def start_requests(self):
-        if self.crawler.stats:
-            # Initialise to 1 to avoid division by 0
-            self.crawler.stats.set_value("total_requests", 1)
-
         for url in self.start_urls:
             yield Request(
                 url,
@@ -343,6 +339,9 @@ class DvsvcSpider(CrawlSpider):
             )
 
     def parse(self, response):
+        if self.crawler.stats:
+            self.crawler.stats.inc_value("total_responses")
+
         if not isinstance(response, TextResponse):
             return
 
@@ -361,8 +360,6 @@ class DvsvcSpider(CrawlSpider):
             )
             # Update health metrics
             self.log_lscores.append(lscore.value)
-            if self.crawler.stats:
-                self.crawler.stats.inc_value("total_requests")
 
         # Itemise immediately for exceptional pscore
         if pscore.value >= _SUFFICIENT_PSCORE:
@@ -400,13 +397,12 @@ class DvsvcSpider(CrawlSpider):
 
     def request_scheduled(self, request, spider):
         # Log health metrics every METRIC_OUTPUT_FREQUENCY requests
-
         if not self.log_lscores or not self.crawler.stats:
             return
 
-        total_requests = self.crawler.stats.get_value("total_requests")
-        if total_requests != 0 and total_requests % _METRIC_OUTPUT_FREQUENCY == 0:
-            _LOGGER.info(f"Total requests: {total_requests}")
+        total_responses = self.crawler.stats.get_value("total_responses")
+        if total_responses != 0 and total_responses % _METRIC_OUTPUT_FREQUENCY == 0:
+            _LOGGER.info(f"Total responses: {total_responses}")
             _LOGGER.info(
                 f"Mean lscore value for last {_METRIC_OUTPUT_FREQUENCY} requests: {sum(self.log_lscores) / len(self.log_lscores)}"
             )
