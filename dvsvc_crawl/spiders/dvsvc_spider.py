@@ -320,15 +320,6 @@ class DvsvcSpider(CrawlSpider):
 
     log_lscores = deque(maxlen=_METRIC_OUTPUT_FREQUENCY)
 
-    @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
-        spider = super().from_crawler(crawler, *args, **kwargs)
-        # Invoke request_scheduled every time a request is scheduled, e.g. to update health metrics.
-        crawler.signals.connect(
-            spider.request_scheduled, signal=signals.request_scheduled
-        )
-        return spider
-
     def start_requests(self):
         for url in self.start_urls:
             yield Request(

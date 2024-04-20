@@ -151,14 +151,7 @@ class DvsvcBlacklistMiddleware:
 
         if response.status != 200 and fld not in self.fld_blacklist:
             # Increment counter for non-200 responses
-            if fld not in self.fld_bad_responses:
-                self.fld_bad_responses[fld] = 1
-            else:
-                self.fld_bad_responses[fld] += 1
-
-            if self.fld_bad_responses[fld] >= FLD_BAD_RESPONSES_ALLOWED:
-                self.fld_blacklist.add(fld)
-                _LOGGER.info(f"Blacklisted FLD: {fld}")
+            self.add_bad_response(fld)
 
         return response
 
@@ -166,5 +159,18 @@ class DvsvcBlacklistMiddleware:
         if isinstance(exception, IgnoreRequest):
             # Propagate rudimentary response to spider so it may be processed
             return Response(url=request.url, status=400, request=request)
+        elif isinstance(exception, TimeoutError):
+            self.add_bad_response(helpers.get_fld(request.url))
+            return Response(url=request.url, status=408, request=request)
         # Non-IgnoreRequest exceptions will be propagated to other middleware
         return None
+
+    def add_bad_response(self, fld):
+        if fld not in self.fld_bad_responses:
+            self.fld_bad_responses[fld] = 1
+        else:
+            self.fld_bad_responses[fld] += 1
+
+        if self.fld_bad_responses[fld] >= FLD_BAD_RESPONSES_ALLOWED:
+            self.fld_blacklist.add(fld)
+            _LOGGER.info(f"Blacklisted FLD: {fld}")
