@@ -395,7 +395,9 @@ class DvsvcSpider(CrawlSpider):
         else:
             _FLD_HISTORIES[fld] = fld_history
 
-    def request_scheduled(self, request, spider):
+        self.log_metrics()
+
+    def log_metrics(self):
         # Log health metrics every METRIC_OUTPUT_FREQUENCY requests
         if not self.log_lscores or not self.crawler.stats:
             return
@@ -404,6 +406,6 @@ class DvsvcSpider(CrawlSpider):
         if total_responses != 0 and total_responses % _METRIC_OUTPUT_FREQUENCY == 0:
             _LOGGER.info(f"Total responses: {total_responses}")
             _LOGGER.info(
-                f"Mean lscore value for last {_METRIC_OUTPUT_FREQUENCY} requests: {sum(self.log_lscores) / len(self.log_lscores)}"
+                f"Mean lscore value generated from last {_METRIC_OUTPUT_FREQUENCY} responses: {sum(self.log_lscores) / len(self.log_lscores)}"
             )
             _LOGGER.info(f"Queued requests: {len(self.crawler.engine.slot.scheduler)}")
