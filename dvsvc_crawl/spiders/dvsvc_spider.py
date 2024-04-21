@@ -1,3 +1,4 @@
+from math import inf
 from scrapy import Request, signals
 from scrapy.spiders.crawl import CrawlSpider
 from scrapy.linkextractors import LinkExtractor
@@ -36,6 +37,10 @@ _METRIC_OUTPUT_FREQUENCY = 100  # Log health metrics every 100 requests
 
 
 def lscore_to_prio(lscore: float) -> int:
+    if lscore == inf:
+        return 11
+    if abs(lscore) > 1.0:
+        raise ValueError("lscore must be in the range [-1, 1] or inf")
     return int(lscore * 10)
 
 
@@ -325,7 +330,7 @@ class DvsvcSpider(CrawlSpider):
             yield Request(
                 url,
                 callback=self.parse,
-                priority=0,
+                priority=lscore_to_prio(inf),
                 meta={"lscore": None, "time_queued": datetime.now(timezone.utc)},
             )
 
