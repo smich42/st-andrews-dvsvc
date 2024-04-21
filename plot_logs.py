@@ -1,6 +1,10 @@
-import re
 import matplotlib.pyplot as plt
+import os
+import sys
+import re
 import tld
+
+SPIDERS_LOG_PATH = sys.argv[1]
 
 total_responses_pattern = re.compile(r"Total responses: (\d+)")
 mean_lscore_pattern = re.compile(
@@ -20,7 +24,7 @@ while True:
 
     flds = set()
 
-    with open("logs/dvsvc-spiders.log", "r") as file:
+    with open(SPIDERS_LOG_PATH, "r") as file:
         cur_itemised_count = 0
         cur_unique_fld_count = 0
 
@@ -34,8 +38,12 @@ while True:
                 itemised_pages.append(itemised_pages[-1] + cur_itemised_count)
                 itemised_flds.append(itemised_flds[-1] + cur_unique_fld_count)
 
-                itemisation_rates.append(cur_itemised_count / cur_responses)
-                unique_fld_rate.append(cur_unique_fld_count / cur_responses)
+                if cur_responses != 0:
+                    itemisation_rates.append(cur_itemised_count / cur_responses)
+                    unique_fld_rate.append(cur_unique_fld_count / cur_responses)
+                else:
+                    itemisation_rates.append(0)
+                    unique_fld_rate.append(0)
 
                 cur_itemised_count = 0
                 cur_unique_fld_count = 0
