@@ -12,7 +12,7 @@ mean_lscore_pattern = re.compile(
 )
 itemised_page_pattern = re.compile(r"Itemised page: (.+)")
 
-fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(3, 2, figsize=(12, 8))
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
 
 while True:
     total_responses = [0]
@@ -65,41 +65,32 @@ while True:
     ax2.cla()
     ax3.cla()
     ax4.cla()
-    ax5.cla()
-    ax6.cla()
 
     ax1.plot(total_responses, itemised_flds, color="blue")
     ax1.set_xlabel("Total Responses")
-    ax1.set_ylabel("Itemised FLDs")
-    ax1.set_title("Itemised FLDs over Total Responses")
+    ax1.set_ylabel("Total Discovered FLDs")
+    ax1.set_title("Discovered FLDs over Responses")
     ax1.grid(True)
 
     ax2.plot(total_responses, itemised_pages, color="red")
     ax2.set_xlabel("Total Responses")
-    ax2.set_ylabel("Itemised Pages")
-    ax2.set_title("Itemised Pages over Total Responses")
+    ax2.set_ylabel("Total Itemised Pages")
+    ax2.set_title("Itemised Pages over Responses")
     ax2.grid(True)
 
     ax3.plot(total_responses, unique_fld_rate, color="blue")
+    ax3.plot(total_responses, itemisation_rates, color="red")
     ax3.set_xlabel("Total Responses")
-    ax3.set_ylabel("Discovery Rate")
-    ax3.set_title("Discovery Rate over Total Responses")
+    ax3.set_ylabel("Rate")
+    ax3.set_title("100-Response Discovery and Itemisation Rates over Responses")
     ax3.grid(True)
 
-    ax4.plot(total_responses, itemisation_rates, color="red")
+    ax4.plot(total_responses, mean_lscores, color="green")
     ax4.set_xlabel("Total Responses")
-    ax4.set_ylabel("Itemisation Rate")
-    ax4.set_title("Itemisation Rate over Total Responses")
+    ax4.set_ylabel("Discovered lscore")
+    ax4.set_title("100-Response Discovered lscore over Total Responses")
     ax4.grid(True)
-
-    ax5.plot(total_responses, mean_lscores, color="green")
-    ax5.set_xlabel("Total Responses")
-    ax5.set_ylabel("Discovered lscore")
-    ax5.set_title("Discovered lscore over Total Responses")
-    ax5.grid(True)
 
     plt.tight_layout()
 
-    plt.pause(1)
-
-plt.show()
+    plt.pause(120)
