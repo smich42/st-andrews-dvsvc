@@ -124,11 +124,29 @@ ALTER TABLE public.view_crawl_item_summary OWNER TO postgres;
 --
 
 CREATE VIEW public.view_crawl_fld AS
- SELECT DISTINCT "substring"((view_crawl_item_summary.link)::text, '(?:https?://)?(?:www\.)?([^/]*)'::text) AS fld
-   FROM public.view_crawl_item_summary;
+ SELECT DISTINCT "substring"((view_crawl_item_summary.link)::text, '(?:https?://)?(?:www\.)?([^/]*)'::text) AS fld,
+    count(*) AS item_count,
+    avg(view_crawl_item_summary.pscore) AS item_pscore_avg,
+    min(view_crawl_item_summary.pscore) AS item_pscore_min,
+    max(view_crawl_item_summary.pscore) AS item_pscore_max
+   FROM public.view_crawl_item_summary
+  GROUP BY ("substring"((view_crawl_item_summary.link)::text, '(?:https?://)?(?:www\.)?([^/]*)'::text));
 
 
 ALTER TABLE public.view_crawl_fld OWNER TO postgres;
+
+--
+-- Name: view_crawl_item_summary_non_batch; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.view_crawl_item_summary_non_batch AS
+SELECT
+    NULL::character varying(2048) AS link,
+    NULL::numeric(8,7) AS pscore,
+    NULL::timestamp with time zone AS time_crawled;
+
+
+ALTER TABLE public.view_crawl_item_summary_non_batch OWNER TO postgres;
 
 --
 -- Name: crawl_item id; Type: DEFAULT; Schema: public; Owner: postgres
@@ -181,6 +199,29 @@ CREATE OR REPLACE VIEW public.view_crawl_item_summary AS
      LEFT JOIN public.crawl_item_batch b ON ((i.batch_id = b.id)))
      LEFT JOIN public.crawl_item_tag t ON ((i.id = t.item_id)))
   GROUP BY i.id;
+
+
+--
+-- Name: view_crawl_item_summary_non_batch _RETURN; Type: RULE; Schema: public; Owner: postgres
+--
+
+CREATE OR REPLACE VIEW public.view_crawl_item_summary_non_batch AS
+ SELECT s.link,
+    s.pscore,
+    s.time_crawled
+   FROM ( SELECT i.link,
+            i.batch_id,
+            i.pscore,
+            i.time_crawled,
+            string_agg((t.tag)::text, ','::text) AS tags
+           FROM ((public.crawl_item i
+             LEFT JOIN public.crawl_item_batch b ON ((i.batch_id = b.id)))
+             LEFT JOIN public.crawl_item_tag t ON ((i.id = t.item_id)))
+          GROUP BY i.id) s
+  WHERE (NOT (EXISTS ( SELECT 1
+           FROM public.crawl_item_batch
+          WHERE (crawl_item_batch.id = s.batch_id))))
+  ORDER BY s.time_crawled;
 
 
 --
