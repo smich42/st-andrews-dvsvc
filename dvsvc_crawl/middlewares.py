@@ -157,7 +157,7 @@ class DvsvcBlacklistMiddleware:
 
         if self.fld_requests[fld] >= FLD_MAX_REQUESTS_ALLOWED:
             self.fld_blacklist.add(fld)
-            _LOGGER.info(f"Blacklisted FLD (maximum responses reached): {fld}")
+            _LOGGER.info(f"Blacklisted FLD (maximum requests reached): {fld}")
 
         return None  # Continue with the same request
 
