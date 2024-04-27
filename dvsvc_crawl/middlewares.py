@@ -5,7 +5,7 @@ from dvsvc_crawl import helpers
 from dvsvc_crawl.spiders import get_spiders_logger
 
 FLD_BAD_RESPONSES_ALLOWED = 10
-FLD_MAX_RESPONSES_ALLOWED = 1
+FLD_MAX_RESPONSES_ALLOWED = 1000
 
 _LOGGER = get_spiders_logger()
 
