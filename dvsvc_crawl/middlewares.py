@@ -5,7 +5,7 @@ from dvsvc_crawl import helpers
 from dvsvc_crawl.spiders import get_spiders_logger
 
 FLD_BAD_RESPONSES_ALLOWED = 10
-FLD_MAX_RESPONSES_ALLOWED = 1000
+FLD_MAX_REQUESTS_ALLOWED = 100
 
 _LOGGER = get_spiders_logger()
 
@@ -140,7 +140,7 @@ _IGNORE_FLDS = {
 class DvsvcBlacklistMiddleware:
     def __init__(self):
         self.fld_blacklist = set()
-        self.fld_responses = {}
+        self.fld_requests = {}
         self.fld_bad_responses = {}
 
         self.fld_blacklist.update(_IGNORE_FLDS)
@@ -150,16 +150,21 @@ class DvsvcBlacklistMiddleware:
 
         if fld in self.fld_blacklist:
             raise IgnoreRequest(f"Ignoring request to blacklisted FLD: {request.url}")
-        return None
+
+        if fld not in self.fld_requests:
+            self.fld_requests[fld] = 0
+        self.fld_requests[fld] += 1
+
+        if self.fld_requests[fld] >= FLD_MAX_REQUESTS_ALLOWED:
+            self.fld_blacklist.add(fld)
+            _LOGGER.info(f"Blacklisted FLD (maximum responses reached): {fld}")
+
+        return None  # Continue with the same request
 
     def process_response(self, request, response, spider):
-        fld = helpers.get_fld(request.url)
-        if fld in self.fld_blacklist:
-            # N.B. This will not be logged by Scrapy.
-            raise IgnoreRequest(
-                f"Ignoring response from blacklisted FLD: {request.url}"
-            )
-        self.add_response(fld, response.status)
+        # Increment counter for non-200 responses
+        if response.status != 200:
+            self.add_bad_response(helpers.get_fld(request.url))
         return response
 
     def process_exception(self, request, exception, spider):
@@ -171,19 +176,6 @@ class DvsvcBlacklistMiddleware:
             return Response(url=request.url, status=408, request=request)
         # Non-IgnoreRequest exceptions will be propagated to other middleware
         return None
-
-    def add_response(self, fld, status):
-        if fld not in self.fld_responses:
-            self.fld_responses[fld] = 0
-        self.fld_responses[fld] += 1
-
-        if self.fld_responses[fld] >= FLD_MAX_RESPONSES_ALLOWED:
-            self.fld_blacklist.add(fld)
-            _LOGGER.info(f"Blacklisted FLD (maximum responses reached): {fld}")
-
-        if status != 200 and fld not in self.fld_blacklist:
-            # Increment counter for non-200 responses
-            self.add_bad_response(fld)
 
     def add_bad_response(self, fld):
         if fld not in self.fld_bad_responses:
