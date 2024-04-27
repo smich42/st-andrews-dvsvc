@@ -64,7 +64,9 @@ class KeywordTokenPredicate(KeywordPredicate):
         topic: int = 0,
         alias: str | None = None,
     ):
-        self.keyword_sets = keyword_sets
+        self.keyword_sets = [
+            {kw.lower() for kw in keyword_set} for keyword_set in keyword_sets
+        ]
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.required_occurrences = required_occurrences_per_set
@@ -99,7 +101,9 @@ class KeywordSearchPredicate(KeywordPredicate):
         topic: int = 0,
         alias: str | None = None,
     ):
-        self.keyword_sets = keyword_sets
+        self.keyword_sets = [
+            {kw.lower() for kw in keyword_set} for keyword_set in keyword_sets
+        ]
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.required_occurrences = required_occurrences
@@ -137,7 +141,7 @@ class TldPredicate(Predicate):
         if tld.startswith("."):  # Remove leading full stop
             tld = tld[1:]
 
-        self.tld = tld
+        self.tld = tld.lower()
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
         self.topic = topic
