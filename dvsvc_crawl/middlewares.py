@@ -5,7 +5,7 @@ from dvsvc_crawl import helpers
 from dvsvc_crawl.spiders import get_spiders_logger
 
 FLD_BAD_RESPONSES_ALLOWED = 10
-FLD_MAX_RESPONSES_ALLOWED = 1000
+FLD_MAX_RESPONSES_ALLOWED = 1
 
 _LOGGER = get_spiders_logger()
 
@@ -149,7 +149,13 @@ class DvsvcBlacklistMiddleware:
         return None
 
     def process_response(self, request, response, spider):
-        self.add_response(helpers.get_fld(request.url), response.status)
+        fld = helpers.get_fld(request.url)
+        if fld in self.fld_blacklist:
+            # N.B. This will not be logged by Scrapy.
+            raise IgnoreRequest(
+                f"Ignoring response from blacklisted FLD: {request.url}"
+            )
+        self.add_response(fld, response.status)
         return response
 
     def process_exception(self, request, exception, spider):
