@@ -110,6 +110,7 @@ _IGNORE_FLDS = {
     "nj.com",
     "usmagazine.com",
     "al.com",
+    "bostonglobe.com",  # Added manually
     "huffingtonpost.com"  # Added manually
     "huffpost.com"  # Added manually
     # Wikipedia and Wikimedia projects
@@ -125,11 +126,14 @@ _IGNORE_FLDS = {
     "wikivoyage.org",
     "wikiquote.org",
     "wikispecies.org",
-    # UK government data sources
+    "britannica.com",
+    # Data sources
     "assets.publishing.service.gov.uk",
     "data.parliament.uk",
+    "data.unicef.org",
     "ons.gov.uk",
     "cy.ons.gov.uk",
+    "web.archive.org",
 }
 
 
