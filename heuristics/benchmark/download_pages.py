@@ -6,9 +6,11 @@ from urllib.request import Request, urlopen
 from urllib.error import URLError
 
 
-CURDIRNAME = os.path.dirname(__file__)
-URLFILE_PATH = os.path.join(CURDIRNAME, "urls.txt")
-OUTDIR_PATH = os.path.join(CURDIRNAME, "pages")
+THIS_PATH = os.path.dirname(__file__)
+DATA_PATH = os.path.join(THIS_PATH, "..", "..", "resource", "benchmark")
+
+URLFILE_PATH = os.path.join(DATA_PATH, "urls.txt")
+OUTDIR_PATH = os.path.join(DATA_PATH, "pages")
 
 if not os.path.exists(OUTDIR_PATH):
     os.makedirs(OUTDIR_PATH)
