@@ -44,10 +44,14 @@ def _has_quick_exit(soup: BeautifulSoup) -> bool:
                     "emergency",
                     "instant",
                     "instantly",
+                    "fast",
                 ]
             ):
                 matches += 1
-            if any(w in words for w in ["site", "website", "page", "webpage"]):
+            if any(
+                w in words
+                for w in ["site", "website", "page", "webpage", "history", "visit"]
+            ):
                 matches += 1
 
     return matches >= NECESSARY_MATCHES
@@ -65,7 +69,7 @@ def get_link_scorer() -> LinkScorer:
         KeywordSearchPredicate({"shelter"}, constant_weight=2),
         KeywordSearchPredicate({"refuge"}, constant_weight=2),
         KeywordSearchPredicate(
-            {"domestic"}, {"violence", "abuse", "abuser"}, constant_weight=5
+            {"domestic"}, {"violence", "abuse", "abuser"}, constant_weight=6
         ),
         KeywordSearchPredicate({"agenc"}, constant_weight=1),
         KeywordSearchPredicate({"organisation", "organization"}, constant_weight=1),
@@ -109,7 +113,7 @@ def get_link_scorer() -> LinkScorer:
         TldPredicate("org.uk", constant_weight=3, scaling_weight=1.4),
         TldPredicate("org.scot", constant_weight=3, scaling_weight=1.4),
     ]
-    return LinkScorer(15, 0.5, LINK_PREDICATES)
+    return LinkScorer(20, 0.2, LINK_PREDICATES)
 
 
 def get_page_scorer() -> PageScorer:
@@ -119,35 +123,32 @@ def get_page_scorer() -> PageScorer:
 
     PAGE_PREDICATES = [
         KeywordTokenPredicate(
-            {
-                "victim",
-                "victims",
-                "victimizing",
-                "victimization",
-                "victimize",
-                "victimized",
-                "victimising",
-                "victimisation",
-                "victimise",
-                "victimised",
-            },
-            {"abuse", "violence", "partner"},
-            constant_weight=7,
-            alias="VICTIM",
+            set(SCOT_CHARITIES.keys()),
+            constant_weight=3,
+            scaling_weight=1.2,
+            alias="SCOT-CHARITY",
         ),
-        KeywordTokenPredicate({"rape", "raped"}, constant_weight=10, alias="RAPE"),
         KeywordTokenPredicate(
-            {"survive", "survivor", "survivors", "survival", "survived", "surviving"},
-            {"abuse", "abusing", "violent", "violence", "trauma", "relationship"},
-            constant_weight=4,
-            alias="SURVIVOR",
+            {"domestic"},
+            {"violence", "abuse", "abuser", "assault"},
+            constant_weight=10,
+            scaling_weight=1.5,
+            alias="DOMESTIC-ABUSE-SERVICE",
         ),
-        KeywordTokenPredicate({"referral"}, constant_weight=2, alias="REFERRAL"),
+        KeywordTokenPredicate(
+            {"intimate", "gender"},
+            {"partner", "based"},
+            {"violence", "abuse"},
+            constant_weight=9,
+            scaling_weight=1.3,
+            alias="GENDER-ABUSE",
+        ),
         KeywordTokenPredicate(
             {"sexual", "sexually"},
             {
                 "abuse",
                 "abused",
+                "abusive",
                 "assault",
                 "assaulted",
                 "harassment",
@@ -157,32 +158,85 @@ def get_page_scorer() -> PageScorer:
                 "violence",
             },
             constant_weight=8,
-            alias="SEXUAL",
+            scaling_weight=1.2,
+            alias="SEXUAL-VIOLENCE",
         ),
         KeywordTokenPredicate(
-            {"homeless", "homelessness"}, constant_weight=2, alias="HOMELESS"
+            {"rape", "raped"}, constant_weight=8, scaling_weight=1.1, alias="RAPE"
         ),
         KeywordTokenPredicate(
-            {"shelter", "shelters"}, constant_weight=2, alias="SHELTER"
+            {
+                # Avoid American spelling
+                "victim",
+                "victims",
+                "victimising",
+                "victimisation",
+                "victimise",
+                "victimised",
+            },
+            {"abuse", "violence", "partner"},
+            constant_weight=7,
+            alias="VICTIM",
         ),
-        KeywordTokenPredicate({"refuge", "refuges"}, constant_weight=3, alias="REFUGE"),
-        KeywordTokenPredicate({"refugee"}, constant_weight=3, alias="REFUGEE"),
         KeywordTokenPredicate(
-            {"domestic"},
-            {"violence", "abuse", "abuser"},
-            constant_weight=15,
-            alias="DOMESTIC-ABUSE",
+            {"survive", "survivor", "survivors", "survival", "survived", "surviving"},
+            {
+                "abuse",
+                "abusing",
+                "abusive",
+                "violent",
+                "violence",
+                "trauma",
+                "relationship",
+                "assistance",
+                "mindfulness",
+            },
+            constant_weight=4,
+            alias="SURVIVOR",
         ),
+        KeywordTokenPredicate(
+            {"trafficking"},
+            constant_weight=5,
+            alias="TRAFFICKING",
+        ),
+        # Not "modern slavery" because "statement on modern slavery" is a common phrase
+        KeywordTokenPredicate(
+            {"recovery"},
+            {"workshop", "workshops", "program", "programs", "programme", "programmes"},
+            constant_weight=3,
+        ),
+        KeywordTokenPredicate({"referral"}, constant_weight=2, alias="REFERRAL"),
+        KeywordTokenPredicate(
+            {"homeless", "homelessness"}, constant_weight=1, alias="HOMELESS"
+        ),
+        KeywordTokenPredicate(
+            {"housing"}, {"assistance", "aid"}, constant_weight=3, alias="HOUSING-AID"
+        ),
+        KeywordTokenPredicate(
+            {"safe"}, {"shelter", "shelters"}, constant_weight=2, alias="SHELTER"
+        ),
+        KeywordTokenPredicate({"refuge", "refuges"}, constant_weight=4, alias="REFUGE"),
+        KeywordTokenPredicate({"refugee"}, constant_weight=2, alias="REFUGEE"),
         KeywordTokenPredicate(
             {"suffer", "suffering", "suffers", "suffered"},
             constant_weight=1,
             alias="SUFFER",
         ),
         KeywordTokenPredicate(
+            {"mandatory"},
+            {"arrest"},
+            {"policy"},
+            constant_weight=5,
+            alias="MANDATORY-ARREST-POLICY",
+        ),
+        KeywordTokenPredicate(
             {"power", "powerless", "powerlessness"},
             {"relationship", "partner", "dynamic", "dynamics", "differential"},
-            constant_weight=2,
+            constant_weight=4,
             alias="POWER",
+        ),
+        KeywordTokenPredicate(
+            {"cohabitation"}, {"effect"}, constant_weight=4, alias="COHABITATION-EFFECT"
         ),
         KeywordTokenPredicate(
             {"women", "woman"},
@@ -197,9 +251,9 @@ def get_page_scorer() -> PageScorer:
                 "assists",
                 "assisting",
             },
-            constant_weight=2,
+            constant_weight=3,
             alias="WOMAN",
-        ),  # Not -hood
+        ),
         KeywordTokenPredicate(
             {"neglect", "neglected"},
             {"partner", "adult", "child", "childhood", "children"},
@@ -207,16 +261,70 @@ def get_page_scorer() -> PageScorer:
             alias="NEGLECT",
         ),
         KeywordTokenPredicate(
-            {"crisis"}, constant_weight=3, alias="CRISIS"
-        ),  # Not crises
+            {"crisis"}, {"intervention", "support"}, constant_weight=4, alias="CRISIS"
+        ),
         KeywordTokenPredicate(
             {"lgbt", "lgbtq", "lgbtqi", "lgbtqia", "lgb", "grsm"},
-            constant_weight=3,
+            constant_weight=2,
             alias="LGBT",
         ),
-        KeywordTokenPredicate({"emergency"}, constant_weight=2, alias="EMERGENCY"),
         KeywordTokenPredicate(
-            {"advisor", "advisors"}, constant_weight=2, alias="ADVISOR"
+            {"advisor", "advisors", "advice"}, constant_weight=1, alias="ADVICE"
+        ),
+        KeywordTokenPredicate(
+            {"outreach"},
+            {"program", "programs", "programme", "programmes", "service", "services"},
+            constant_weight=3,
+            alias="OUTREACH",
+        ),
+        KeywordTokenPredicate(
+            {"equality"},
+            {"advocacy", "advocate", "advocates"},
+            constant_weight=3,
+            alias="EQUALITY-ADVOCATE",
+        ),
+        KeywordTokenPredicate(
+            {"police"},
+            {"liaison"},
+            constant_weight=2,
+            alias="POLICE-LIAISON",
+        ),
+        KeywordTokenPredicate(
+            {"court"},
+            {"support", "supported"},
+            constant_weight=2,
+            alias="COURT-SUPPORT",
+        ),
+        KeywordTokenPredicate(
+            {"abuser"},
+            {"intervention"},
+            {"service", "services", "programme", "programmes", "program", "programs"},
+            constant_weight=6,
+            alias="ABUSER-INTERVENTION",
+        ),
+        KeywordTokenPredicate(
+            {"economic", "economically", "financial", "financially"},
+            {"empower", "empowerment", "empowered"},
+            constant_weight=2,
+            alias="ECONOMIC-EMPOWERMENT",
+        ),
+        KeywordTokenPredicate(
+            {"multilingual"},
+            {"service", "services", "support"},
+            constant_weight=1,
+            alias="MULTILINGUAL",
+        ),
+        KeywordTokenPredicate(
+            {"cultural", "cultures", "culturally"},
+            {"sensitive", "sensitivity"},
+            constant_weight=1,
+            alias="CULTURE-SENSITIVE",
+        ),
+        KeywordTokenPredicate(
+            {"legal"}, {"aid", "advice", "advocacy"}, constant_weight=2, alias="LEGAL"
+        ),
+        KeywordTokenPredicate(
+            {"emotional"}, {"support"}, constant_weight=1, alias="EMOTIONAL-SUPPORT"
         ),
         KeywordTokenPredicate(
             {
@@ -229,11 +337,11 @@ def get_page_scorer() -> PageScorer:
                 "counselling",
             },
             {"abuse", "violence", "trauma", "health", "survivor"},
-            constant_weight=3,
-            alias="COUNSEL",
+            constant_weight=5,
+            alias="COUNSELLING",
         ),
         KeywordTokenPredicate(
-            {"therapy", "therapist", "therapists"}, constant_weight=2, alias="THERAPY"
+            {"therapy", "therapist", "therapists"}, constant_weight=1, alias="THERAPY"
         ),
         KeywordTokenPredicate(
             {"community", "communities"}, constant_weight=1, alias="COMMUNITY"
@@ -244,33 +352,72 @@ def get_page_scorer() -> PageScorer:
             alias="HARASSMENT",
         ),
         KeywordTokenPredicate(
-            {"sanctuary", "sanctuaries"}, constant_weight=4, alias="SANCTUARY"
+            {"sanctuary", "sanctuaries"}, constant_weight=2, alias="SANCTUARY"
         ),
         KeywordTokenPredicate(
-            {"safehouse", "safehouses"}, constant_weight=5, alias="SAFEHOUSE"
+            {"safehouse", "safehouses"}, constant_weight=3, alias="SAFEHOUSE"
         ),
         KeywordTokenPredicate(
-            {"safe"}, {"room", "rooms"}, constant_weight=5, alias="SAFE-ROOM"
+            {"safe"}, {"room", "rooms"}, constant_weight=3, alias="SAFE-ROOM"
         ),
         KeywordTokenPredicate(
-            {"trust", "trusts", "trusting", "trusted", "trustworthy"},
-            constant_weight=2,
+            {"coercive"}, {"control"}, {"support"}, constant_weight=2, alias="HAVEN"
+        ),
+        KeywordTokenPredicate(
+            {"safety", "escape"},
+            {"plan", "planning"},
+            constant_weight=1,
+            alias="SAFETY-PLAN",
+        ),
+        KeywordTokenPredicate(
+            {"coercive"},
+            {"control"},
+            {"support", "supporting", "supports"},
+            constant_weight=5,
+            alias="COERCIVE-CONTROL",
+        ),
+        KeywordTokenPredicate(
+            {"cycle"},
+            {"violence"},
+            constant_weight=1,
+            alias="VIOLENCE-CYCLE",
+        ),
+        KeywordTokenPredicate(
+            {"power"},
+            {"control"},
+            {"wheel"},
+            constant_weight=5,
+            alias="POWER-CONTROL-WHEEL",
+        ),
+        KeywordTokenPredicate(
+            {"social"},
+            {"learning"},
+            {"theory"},
+            constant_weight=1,
+            alias="SOCIAL-LEARNING-THEORY",
+        ),
+        KeywordTokenPredicate(
+            {"trust", "trusts", "trusting", "trusted"},
+            constant_weight=1,
             alias="TRUST",
         ),
         KeywordTokenPredicate(
             {"charity"},
             {"reg", "registration", "number"},
-            constant_weight=5,
+            constant_weight=3,
             alias="CHARITY",
-        ),
-        KeywordTokenPredicate(
-            {"marriage", "relationship"}, constant_weight=2, alias="RELATIONSHIP"
         ),
         KeywordTokenPredicate(
             {"marriage"},
             {"force", "forced", "trap", "trapped", "coerce", "coercion", "coerced"},
-            constant_weight=9,
+            constant_weight=6,
             alias="FORCED-MARRIAGE",
+        ),
+        KeywordTokenPredicate(
+            {"abusive"},
+            {"marriage", "relationship"},
+            constant_weight=6,
+            alias="ABUSIVE-RELATIONSHIP",
         ),
         KeywordTokenPredicate(
             {"donate", "donation", "donations", "fundraise", "fundraising"},
@@ -278,11 +425,14 @@ def get_page_scorer() -> PageScorer:
             alias="DONATION",
         ),
         KeywordTokenPredicate(
-            {"trauma", "traumatic"}, constant_weight=5, alias="TRAUMA"
-        ),  # Not traumatise
+            {"trauma", "traumatic"},
+            {"recover", "recovery", "recovering", "care"},
+            constant_weight=5,
+            alias="TRAUMA",
+        ),
         KeywordTokenPredicate(
             {"confidential", "confidentiality", "confidentially"},
-            constant_weight=4,
+            constant_weight=2,
             alias="CONFIDENTIAL",
         ),
         KeywordTokenPredicate(
@@ -297,15 +447,27 @@ def get_page_scorer() -> PageScorer:
         KeywordTokenPredicate(
             {"empowerment"},
             {"program", "programs", "programme", "programmes"},
-            constant_weight=6,
+            constant_weight=3,
             alias="EMPOWERMENT",
         ),
-        KeywordTokenPredicate({"ptsd"}, constant_weight=5, alias="PTSD"),
+        KeywordTokenPredicate({"ptsd"}, constant_weight=3, alias="PTSD"),
         KeywordTokenPredicate(
             {"volunteer", "volunteers"}, constant_weight=1, alias="VOLUNTEER"
         ),
         KeywordTokenPredicate(
-            {"stalking", "stalker"}, constant_weight=6, alias="STALKING"
+            {"stalking", "stalker"}, constant_weight=4, alias="STALKING"
+        ),
+        KeywordTokenPredicate(
+            {"gendered"},
+            {"crime", "violence", "abuse"},
+            constant_weight=4,
+            alias="GENDERED-CRIME",
+        ),
+        KeywordTokenPredicate(
+            {"symbolic"},
+            {"interactionism"},
+            constant_weight=3,
+            alias="SYMBOLIC-INTERACTIONISM",
         ),
         KeywordTokenPredicate(
             {"report", "reporting"},
@@ -315,7 +477,7 @@ def get_page_scorer() -> PageScorer:
         ),
         KeywordTokenPredicate({"duluth"}, {"model"}, constant_weight=5, alias="DULUTH"),
         KeywordTokenPredicate(
-            {"restraining"}, {"order"}, constant_weight=5, alias="RESTRAINING-ORDER"
+            {"restraining"}, {"order"}, constant_weight=4, alias="RESTRAINING-ORDER"
         ),
         KeywordTokenPredicate(
             {"reproduce", "reproductive"},
@@ -417,10 +579,40 @@ def get_page_scorer() -> PageScorer:
             constant_weight=-10,
             alias="SUB-COMMERCIAL",
         ),
+        # Penalise academic websites
         KeywordTokenPredicate(
-            set(SCOT_CHARITIES.keys()), constant_weight=20, alias="SCOT-CHARITY"
+            {
+                "study",
+                "studies",
+                "academic",
+                "academics",
+                "journal",
+                "journals",
+                "thesis",
+                "theses",
+                "professor",
+                "lecturer",
+                "scholar",
+                "scholars",
+                "researchgate",
+                "academia",
+                "scholarly",
+                "citation",
+                "citations",
+                "jstor",
+                "arxiv",
+                "syllabus",
+            },
+            required_occurrences_per_set=2,
+            constant_weight=-10,
+            alias="SUB-ACADEMIC",
         ),
         HtmlPredicate(_has_quick_exit, constant_weight=10, alias="QUICK-EXIT"),
     ]
 
-    return PageScorer(25, -0.01, 0, PAGE_PREDICATES)
+    return PageScorer(
+        predicates=PAGE_PREDICATES,
+        percentile_90=30,
+        word_count_factor=-0.01,
+        topic_count_factor=0,
+    )
