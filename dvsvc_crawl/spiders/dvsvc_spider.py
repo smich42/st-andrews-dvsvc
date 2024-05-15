@@ -22,15 +22,18 @@ _LOGGER = get_spiders_logger()
 _LINK_SCORER = dvsvc_scorers.get_link_scorer()
 _PAGE_SCORER = dvsvc_scorers.get_page_scorer()
 
-_SUFFICIENT_PSCORE = 0.95  # A sufficient pscore to immediately itemise a page
+_EXCEPTIONAL_PSCORE = 0.95  # A sufficient pscore to immediately itemise a page
 
-_NECESSARY_PSCORE = 0.80  # A necessary pscore to consider itemising as part of a page set for the same fld
-_NECESSARY_FLD_RATIO = 0.3  # The minimum ratio of good pscores to total pscores needed
-_NECESSARY_FLD_SAMPLES = 4  # The minimum number of samples needed
+_GOOD_PSCORE = 0.80  # A necessary pscore to consider itemising as part of a page set for the same fld
+_FLD_GOOD_PSCORE_RATIO = (
+    0.6  # The minimum ratio of good pscores to total pscores needed
+)
+_FLD_PSCORE_SAMPLES = 5  # The minimum number of samples needed
 
 # Cache a visit count and good-pscore count for each domain
+# 50,000 domains is more than enough for our scope, especially because pages from high-scoring domains are likely to be visited in quick succession
 _FLD_HISTORIES = ExpiringDict(
-    max_len=100_000, max_age_seconds=60.0 * 60.0 * 24.0  # 24-hour expiry
+    max_len=50_000, max_age_seconds=60.0 * 60.0 * 24.0  # 24-hour expiry
 )
 
 _METRIC_OUTPUT_FREQUENCY = 100  # Log health metrics every 100 requests
@@ -39,8 +42,10 @@ _METRIC_OUTPUT_FREQUENCY = 100  # Log health metrics every 100 requests
 def lscore_to_prio(lscore: float) -> int:
     if lscore == inf:
         return 11
+    if lscore == -inf:
+        return -11
     if abs(lscore) > 1.0:
-        raise ValueError("lscore must be in the range [-1, 1] or inf")
+        raise ValueError("lscore must be in the range [-1, 1] or +\-inf")
     return int(lscore * 10)
 
 
@@ -68,7 +73,7 @@ class FLDVisits:
     ):
         # No need to test URLs for having the same FLD
         self.total_pages += 1
-        if pscore.value >= _NECESSARY_PSCORE:
+        if pscore.value >= _GOOD_PSCORE:
             self.good_pages.append(
                 DvsvcCrawlItem(
                     link=link,
@@ -81,8 +86,8 @@ class FLDVisits:
 
     def has_necessary_fld_ratio(self) -> float:
         return (
-            self.total_pages >= _NECESSARY_FLD_SAMPLES
-            and len(self.good_pages) / self.total_pages >= _NECESSARY_FLD_RATIO
+            self.total_pages >= _FLD_PSCORE_SAMPLES
+            and len(self.good_pages) / self.total_pages >= _FLD_GOOD_PSCORE_RATIO
         )
 
 
@@ -338,7 +343,7 @@ class DvsvcSpider(CrawlSpider):
             self.log_lscores.append(lscore.value)
 
         # Itemise immediately for exceptional pscore
-        if pscore.value >= _SUFFICIENT_PSCORE:
+        if pscore.value >= _EXCEPTIONAL_PSCORE:
             yield DvsvcCrawlItem(
                 link=response.url,
                 pscore=pscore,
