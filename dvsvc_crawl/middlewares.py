@@ -59,6 +59,8 @@ _IGNORE_FLDS = {
     "politics.co.uk",  # Added manually
     "politicshome.com",  # Added manually
     "huffingtonpost.co.uk"  # Added manually
+    "huffpost.co.uk"  # Added manually
+    "graziadaily.co.uk",  # Added manually
     # With some duplicates, https://pressgazette.co.uk/media-audience-and-business-data/media_metrics/most-popular-websites-news-us-monthly-3/
     "nytimes.com",
     "cnn.com",
@@ -113,7 +115,9 @@ _IGNORE_FLDS = {
     "bostonglobe.com",  # Added manually
     "huffingtonpost.com"  # Added manually
     "huffpost.com"  # Added manually
-    # Wikipedia and Wikimedia projects
+    "peacekeeping.un.org",  # Added manually
+    "soundcloud.com",  # Added manually
+    # Data sources and wikis
     "wikipedia.org",
     "wikimedia.org",
     "wiktionary.org",
@@ -127,13 +131,25 @@ _IGNORE_FLDS = {
     "wikiquote.org",
     "wikispecies.org",
     "britannica.com",
-    # Data sources
+    "worldbank.org"
+    # Parliament sources
     "assets.publishing.service.gov.uk",
     "data.parliament.uk",
     "data.unicef.org",
     "ons.gov.uk",
     "cy.ons.gov.uk",
     "web.archive.org",
+    # One-time events and fundraising
+    "eventbrite.co.uk",
+    "eventbrite.com",
+    "change.org",
+    "justgiving.com",
+    "gofundme.com",
+    "kickstarter.com",
+    "patreon.com",
+    "crowdfunder.co.uk",
+    "ticketmaster.com",
+    "ticketmaster.co.uk",
 }
 
 
@@ -142,7 +158,6 @@ class DvsvcBlacklistMiddleware:
         self.fld_blacklist = set()
         self.fld_requests = {}
         self.fld_bad_responses = {}
-
         self.fld_blacklist.update(_IGNORE_FLDS)
 
     def process_request(self, request, spider):
@@ -150,12 +165,13 @@ class DvsvcBlacklistMiddleware:
 
         if fld in self.fld_blacklist:
             raise IgnoreRequest(f"Ignoring request to blacklisted FLD: {request.url}")
-
         if fld not in self.fld_requests:
             self.fld_requests[fld] = 0
         self.fld_requests[fld] += 1
-
-        if self.fld_requests[fld] >= FLD_MAX_REQUESTS_ALLOWED:
+        if (
+            self.fld_requests[fld] >= FLD_MAX_REQUESTS_ALLOWED
+            and fld not in self.fld_blacklist
+        ):
             self.fld_blacklist.add(fld)
             _LOGGER.info(f"Blacklisted FLD (maximum requests reached): {fld}")
 
@@ -182,6 +198,9 @@ class DvsvcBlacklistMiddleware:
             self.fld_bad_responses[fld] = 0
         self.fld_bad_responses[fld] += 1
 
-        if self.fld_bad_responses[fld] >= FLD_BAD_RESPONSES_ALLOWED:
+        if (
+            self.fld_bad_responses[fld] >= FLD_BAD_RESPONSES_ALLOWED
+            and fld not in self.fld_blacklist
+        ):
             self.fld_blacklist.add(fld)
             _LOGGER.info(f"Blacklisted FLD (too many bad responses): {fld}")
