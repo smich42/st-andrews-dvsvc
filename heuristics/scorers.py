@@ -38,23 +38,6 @@ class HtmlPredicate(Predicate):
 
 
 class KeywordPredicate(Predicate):
-    keyword_sets: Collection[set[str]]  # At least one keyword from each set must occur
-
-    def __str__(self):
-        return (
-            self.__class__.__name__
-            + "("
-            + " ".join(
-                [
-                    f"{{{next(iter(keyword_set))} ... }}"
-                    for keyword_set in self.keyword_sets
-                ]
-            )
-            + ")"
-        )
-
-
-class KeywordTokenPredicate(KeywordPredicate):
     def __init__(
         self,
         *keyword_sets: set[str],
@@ -87,72 +70,48 @@ class KeywordTokenPredicate(KeywordPredicate):
         return True
 
     def __str__(self):
-        return "KW-" + self.alias if self.alias else super().__str__()
+        if self.alias:
+            return "KW-" + self.alias
+        return (
+            self.__class__.__name__
+            + "("
+            + " ".join(
+                [
+                    f"{{{next(iter(keyword_set))} ... }}"
+                    for keyword_set in self.keyword_set
+                ]
+            )
+            + ")"
+        )
 
 
-class KeywordSearchPredicate(KeywordPredicate):
-    # N.B. Slower as it searches text rather than set.
+class RegexPredicate(Predicate):
     def __init__(
         self,
-        *keyword_sets: set[str],
+        *patterns: set[str],
         constant_weight: float = 0.0,
         scaling_weight: float = 1.0,
-        required_occurrences: int = 1,
-        topic: int = 0,
         alias: str | None = None,
     ):
-        self.keyword_sets = [
-            {kw.lower() for kw in keyword_set} for keyword_set in keyword_sets
-        ]
+        self.patterns = [re.compile("|".join(p)) for p in patterns]
         self.constant_weight = constant_weight
         self.scaling_weight = scaling_weight
-        self.required_occurrences = required_occurrences
-        self.topic = topic
         self.alias = alias
 
     def apply(self, page_text: str) -> bool:
-        for keyword_set in self.keyword_sets:
-            occurrences = 0
-            for keyword in keyword_set:
-                if keyword in page_text:
-                    occurrences += 1
-                if occurrences >= self.required_occurrences:
-                    break
-            else:
-                # Fail if not all keyword sets have enough occurrences
+        for pattern in self.patterns:
+            if not pattern.findall(page_text):
                 return False
         return True
 
     def __str__(self):
-        return "KW-" + self.alias if self.alias else super().__str__()
-
-
-class TldPredicate(Predicate):
-    tld: str  # e.g. "org" or "gov.uk"
-
-    def __init__(
-        self,
-        tld: str,
-        constant_weight: float = 0.0,
-        scaling_weight: float = 1.0,
-        topic: int = 0,
-        alias: str | None = None,
-    ):
-        if tld.startswith("."):  # Remove leading full stop
-            tld = tld[1:]
-
-        self.tld = tld.lower()
-        self.constant_weight = constant_weight
-        self.scaling_weight = scaling_weight
-        self.topic = topic
-        self.alias = alias
-        self.apply = lambda tld: self.tld == tld
-
-    def __str__(self):
+        if self.alias:
+            return "RX-" + self.alias
         return (
-            "TLD-" + self.alias
-            if self.alias
-            else f"{self.__class__.__name__}({self.tld})"
+            self.__class__.__name__
+            + "("
+            + " ".join([f"{{{next(iter(p))} ... }}" for p in self.patterns])
+            + ")"
         )
 
 
@@ -189,40 +148,36 @@ class PageScorer:
         self,
         percentile_90: float,
         word_count_factor: float,
-        topic_count_factor: float,
-        predicates: list[HtmlPredicate | KeywordTokenPredicate],
+        predicates: list[Predicate],
     ):
         self.percentile_90 = percentile_90
         self.word_count_factor = word_count_factor
-        self.topic_count_factor = topic_count_factor
         self.predicates = predicates
 
     def score(self, page_html: str) -> Score:
         soup = BeautifulSoup(page_html, "html.parser")
 
-        page_text = self._clean_text(soup.get_text())
-        page_words = set(page_text.split(" "))
+        page_text = self._cleaned_text(soup.get_text())
+        page_words = set(page_text.lower().split(" "))
 
         sb = _ScoreBuilder()
-        topics = set()
 
         for predicate in self.predicates:
             if type(predicate) is HtmlPredicate:
                 is_match = predicate.apply(soup)
-            elif type(predicate) is KeywordTokenPredicate:
+            elif type(predicate) is KeywordPredicate:
                 is_match = predicate.apply(page_words)
+            elif type(predicate) is RegexPredicate:
+                is_match = predicate.apply(page_text)
 
             if is_match:
                 sb.compound(predicate)
-            topics.add(predicate.topic)
 
         sb.apply_weights(len(page_words) * self.word_count_factor, 1.0)
-        sb.apply_weights(len(topics) * self.topic_count_factor, 1.0)
-
         return sb.get_score(self.percentile_90)
 
-    def _clean_text(self, page_text: str) -> str:
-        page_text = page_text.strip().lower()
+    def _cleaned_text(self, page_text: str) -> str:
+        page_text = page_text.strip()
         page_text = re.sub(r"[`!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?~]+", " ", page_text)
         page_text = re.sub(r"\s+", " ", page_text)
         return page_text
@@ -233,25 +188,16 @@ class LinkScorer:
         self,
         percentile_90: float,
         parent_factor: float,
-        predicates: list[TldPredicate | KeywordSearchPredicate],
+        predicates: list[RegexPredicate],
     ):
         self.predicates = predicates
         self.percentile_90 = percentile_90
         self.parent_factor = parent_factor
 
     def score(self, link: str, parent_page_score: float) -> Score:
-        link = link.lower()
-        tld = get_tld(link, fail_silently=True, as_object=False)
-
         sb = _ScoreBuilder()
-
         for predicate in self.predicates:
-            if type(predicate) is TldPredicate and tld:
-                is_match = predicate.apply(tld)
-            elif type(predicate) is KeywordSearchPredicate:
-                is_match = predicate.apply(link)
-
-            if is_match:
+            if predicate.apply(link.lower()):
                 sb.compound(predicate)
 
         sb.apply_weights(self.parent_factor * parent_page_score, 1.0)
