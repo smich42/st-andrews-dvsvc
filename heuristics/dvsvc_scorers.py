@@ -620,7 +620,9 @@ def get_page_scorer() -> PageScorer:
             alias="SUB-ACADEMIC",
         ),
         HtmlPredicate(_has_quick_exit, constant_weight=10, alias="QUICK-EXIT"),
-        RegexPredicate({r"501\(c\)\(3\)"}, constant_weight=-15, alias="501-3-C"),
+        RegexPredicate(
+            {r"501\s?\(c\)\s?\(?3\)?\s?"}, constant_weight=-15, alias="501-3-C"
+        ),
     ]
 
     return PageScorer(

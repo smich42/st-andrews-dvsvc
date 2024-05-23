@@ -1,5 +1,5 @@
 from math import inf
-from scrapy import Request, signals
+from scrapy import Request
 from scrapy.spiders.crawl import CrawlSpider
 from scrapy.linkextractors import LinkExtractor
 from scrapy.http.response.text import TextResponse
