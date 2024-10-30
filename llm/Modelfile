@@ -1,4 +1,4 @@
-FROM gemma2:27b
+FROM llama3.1
 
 SYSTEM """
     You are tasked with reviewing webpages belonging to Domestic Abuse support services in the UK.

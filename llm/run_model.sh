@@ -11,6 +11,6 @@ if ! ollama list | grep -q "^${MODEL_NAME}"; then
     ollama create ${MODEL_NAME} -f $(dirname "$0")/Modelfile
 fi
 
-kill $SERVER_PID
-ollama serve
+echo "Sleeping"
+sleep 86400
 

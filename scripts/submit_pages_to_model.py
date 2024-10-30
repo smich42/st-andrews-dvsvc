@@ -2,13 +2,20 @@ import os
 import requests
 import json
 import hashlib
+import logging
+from datetime import datetime
 from tld import get_fld
 from typing import Dict, List, Any
 from datetime import datetime
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 PAGE_TEXTS_DIR = "../resource/starting_page_texts"
 OUT_DIR = "../resource/llm_responses"
-MODEL_URL = "http://ollama:11434/api/generate"
+MODEL_URL = "http://localhost:11434/api/generate"
+PROMPT_START = ""
 
 
 def url_to_filename(url: str, timestamp: datetime) -> str:
@@ -25,7 +32,7 @@ def read_json(path: str) -> Dict[str, str]:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        print(f"Error reading {path}: {e}")
+        logging.error(f"Error reading {path}: {e}")
 
 
 def group_pages_by_fld(
@@ -41,7 +48,7 @@ def group_pages_by_fld(
             # Get FLD
             domain = get_fld(url, fail_silently=True)
             if not domain:
-                print("Could not get FLD: " + url)
+                logging.warning("Could not get FLD: " + url)
                 continue
 
             # Get prompt part for this webpage
@@ -56,7 +63,7 @@ def group_pages_by_fld(
             groups[domain].append(prompt_part)
 
         except Exception as e:
-            print(f"Error processing URL {url}: {e}")
+            logging.error(f"Error processing URL {url}: {e}")
             continue
 
     return groups
@@ -65,12 +72,14 @@ def group_pages_by_fld(
 def submit_to_llm(prompt: str) -> Dict[str, Any]:
     try:
         response = requests.post(
-            MODEL_URL, json={"prompt": prompt, "stream": False}, timeout=30
+            MODEL_URL,
+            json={"model": "dvsvc-llm", "prompt": prompt, "stream": False},
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error submitting prompt to Ollama API: {e}")
+        logging.error(f"Error submitting prompt to Ollama API: {e}")
         return None
 
 
@@ -87,9 +96,9 @@ def write_response(domain: str, prompt: str, response: Dict[str, Any]) -> None:
     try:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(json.dumps(output_data))
-        print(f"Saved response to {filepath}")
+        logging.info(f"Saved response to {filepath}")
     except Exception as e:
-        print(f"Error saving response to {filepath}: {e}")
+        logging.error(f"Error saving response to {filepath}: {e}")
 
 
 def main():
@@ -99,14 +108,19 @@ def main():
             continue
 
         filepath = os.path.join(PAGE_TEXTS_DIR, filename)
-        page_data_list.append(read_json(filepath))
+        contents = read_json(filepath)
+        if contents:
+            page_data_list.append(contents)
 
     grouped = group_pages_by_fld(page_data_list)
+    n_grouped = len(grouped)
 
-    for domain, pages in grouped.items():
-        print(f"Processing {domain} with {len(pages)} pages")
+    for i, (domain, pages) in enumerate(grouped.items()):
+        logging.info(
+            f"[{i + 1}/{n_grouped}] Processing {domain} with {len(pages)} page(s)"
+        )
 
-        prompt = json.dumps(pages)
+        prompt = PROMPT_START + json.dumps(pages)
         response = submit_to_llm(prompt)
 
         write_response(domain, prompt, response)
