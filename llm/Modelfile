@@ -1,4 +1,4 @@
-FROM llama3.1
+FROM phi3:medium
 
 SYSTEM """
     You are tasked with reviewing webpages belonging to Domestic Abuse support services in the UK.

@@ -36,6 +36,24 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       DB_HOST: db
 
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./llm:/model:ro
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              count: all
+              driver: nvidia
+    command: >
+      sh -c "ollama create dvsvc_llm /model/Modelfile && ollama serve"
+
 volumes:
   db_data:
   pgadmin_data:
+  ollama_data:
