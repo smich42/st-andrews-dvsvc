@@ -16,6 +16,7 @@ PAGE_TEXTS_DIR = "../resource/starting_page_texts"
 OUT_DIR = "../resource/llm_responses"
 MODEL_URL = "http://localhost:11434/api/generate"
 PROMPT_START = ""
+CONTEXT_TOKENS = 4096
 
 
 def url_to_filename(url: str, timestamp: datetime) -> str:
@@ -73,7 +74,12 @@ def submit_to_llm(prompt: str) -> Dict[str, Any]:
     try:
         response = requests.post(
             MODEL_URL,
-            json={"model": "dvsvc-llm", "prompt": prompt, "stream": False},
+            json={
+                "model": "dvsvc-llm",
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_ctx": CONTEXT_TOKENS},
+            },
             timeout=30,
         )
         response.raise_for_status()
