@@ -1,3 +1,4 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 import hashlib
@@ -10,10 +11,10 @@ OUT_DIR = "../resource/starting_page_texts"
 
 
 def url_to_filename(url: str) -> str:
-    return hashlib.md5(url.encode()).hexdigest() + ".txt"
+    return hashlib.md5(url.encode()).hexdigest() + ".json"
 
 
-def download_and_parse(url: str, outpath: Path) -> bool:
+def download_and_parse(url: str, outpath: str) -> bool:
     url = url.strip()
 
     try:
@@ -32,7 +33,7 @@ def download_and_parse(url: str, outpath: Path) -> bool:
             line.strip() for line in text.splitlines() if line.strip()
         )
 
-        filepath = outpath / url_to_filename(url)
+        filepath = os.path.join(outpath, url_to_filename(url))
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(json_dumps({"url": url, "text": cleaned_text}))
@@ -40,15 +41,15 @@ def download_and_parse(url: str, outpath: Path) -> bool:
         print(f"Wrote {url} -> {filepath}")
 
     except Exception as e:
-        print(f"Error for {url}: {str(e)}")
+        print(f"Error for {url}: {e}")
         return False
 
     return True
 
 
 def main():
-    outpath = Path(OUT_DIR)
-    outpath.mkdir(exist_ok=True)
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
 
     try:
         with open(IN_FILE, "r") as f:
@@ -58,7 +59,7 @@ def main():
         return
 
     for url in urls:
-        download_and_parse(url, outpath)
+        download_and_parse(url, OUT_DIR)
 
 
 if __name__ == "__main__":
