@@ -50,8 +50,7 @@ services:
             - capabilities: [ gpu ]
               count: all
               driver: nvidia
-    command: >
-      sh -c "ollama create dvsvc_llm /model/Modelfile && ollama serve"
+    entrypoint: [ "/bin/sh", "-c", "/model/register_model.sh && ollama serve" ]
 
 volumes:
   db_data:
