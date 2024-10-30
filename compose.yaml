@@ -40,7 +40,7 @@ services:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
-      - ./llm:/model:ro
+      - ./llm:/model
     ports:
       - "11434:11434"
     deploy:
@@ -50,7 +50,7 @@ services:
             - capabilities: [ gpu ]
               count: all
               driver: nvidia
-    entrypoint: [ "/bin/sh", "-c", "/model/register_model.sh && ollama serve" ]
+    entrypoint: [ "/bin/sh", "/model/run_model.sh" ]
 
 volumes:
   db_data:
