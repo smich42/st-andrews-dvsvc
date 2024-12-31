@@ -17,3 +17,7 @@ This automatically loads environment variables from `.env` in the project direct
 ## Run just the crawler (without Docker)
 
 Specify `./simple-run.sh <output-file>` for a crawl with plain CSV output. For particular features like job [persistence](https://docs.scrapy.org/en/latest/topics/jobs.html), run using `scrapy crawl dvsvc <args...>`.
+
+## Use in the CS labs
+
+`podman` should be a direct replacement for Docker. `podman-compose` should be installable using `pip`.
