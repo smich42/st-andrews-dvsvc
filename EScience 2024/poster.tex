@@ -1,0 +1,566 @@
+\documentclass[conference]{IEEEtran}
+%\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{mathtools}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}
+\usetikzlibrary{patterns}
+
+\usepackage{cleveref}
+\usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+\urlstyle{tt}
+\title{Automating Discovery of UK Domestic Abuse Support Services}
+
+
+\author{\IEEEauthorblockN{Stavros Michalovits\IEEEauthorrefmark{1}, Annah McCurry\IEEEauthorrefmark{2}, Ruth Hoffmann\IEEEauthorrefmark{1},\\ Swithun Crowe\IEEEauthorrefmark{3}, Patrick McCann\IEEEauthorrefmark{3}, David I Donaldson \IEEEauthorrefmark{2}, Bobby May\IEEEauthorrefmark{2}}
+\IEEEauthorblockA{\IEEEauthorrefmark{1}School of Computer Science, University of St Andrews, St Andrews, Scotland\\
+Email: sm519@st-andrews.ac.uk, rh347@st-andrews.ac.uk} \IEEEauthorblockA{\IEEEauthorrefmark{2}School of Psychology \& Neuroscience, University of St Andrews, St Andrews, Scotland} 
+\IEEEauthorblockA{\IEEEauthorrefmark{3}Research Computing, University of St Andrews, St Andrews, Scotland} }
+% \author{\IEEEauthorblockN{1\textsuperscript{st} Stavros Michalovits}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{School of Computer Science}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% sm519@st-andrews.ac.uk}
+% \and
+% \IEEEauthorblockN{2\textsuperscript{nd} Annah McCurry}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{School of Psychology \& Neuroscience}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% 0000-0003-3403-7680}
+% \and
+% \IEEEauthorblockN{3\textsuperscript{rd} Ruth Hoffmann}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{School of Computer Science}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% 0000-0002-1011-5894}
+% \and
+% \IEEEauthorblockN{4\textsuperscript{th} Swithun Crowe}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{Research Computing}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% 0000-0001-8485-8597}
+% \and
+% \IEEEauthorblockN{5\textsuperscript{th} Patrick McCann}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{Research Computing}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% 0000-0002-9324-2775}
+% \and
+% \IEEEauthorblockN{6\textsuperscript{th} David I Donaldson}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{School of Psychology \& Neuroscience}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% 0000-0002-8036-3455}
+% \and
+% \IEEEauthorblockN{7\textsuperscript{th} Bobby May}
+% \IEEEauthorblockA{\scalebox{.9}[1.0]{\textit{School of Psychology \& Neuroscience}} \\
+% \scalebox{.9}[1.0]{\textit{University of St Andrews}}\\
+% St Andrews, Scotland \\
+% 0000-0001-8110-8408}
+% }
+
+\maketitle
+
+\begin{abstract}
+We present the development of the first automatically updating catalogue of services supporting Domestic Abuse survivors. 
+This catalogue focusses on services in Scotland and the United Kingdom. 
+In particular, we employ a web crawler with a rules-based relevance model to discover services, flagging new services to human experts for review and allowing for a lighter workload for curating.
+The system is designed for adaptability with regard to changes in terminology related to Domestic Abuse, both to aid maintenance and allow expansion to other regions.
+\end{abstract}
+
+\begin{IEEEkeywords}
+web crawling, scraping, database, automatic, Domestic Abuse services
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Since 2019, the Women's Aid Federation of England has received roughly \textsterling 1.2 million in funding from the UK government for their "Routes to Support" project\cite{wafin20, wafin21, wafin22}.
+Central to the project is a database of Domestic Abuse services in the UK that is manually updated, multiple times a year. 
+This database is a critical resource built for end users (people suffering Domestic Abuse), enabling them to identify services that can help them flee abuse and find safety. 
+However, funding for Domestic Abuse services in the UK is volatile, and services appear and disappear every year due to funding availability. 
+This makes the task of keeping a manual directory of services up-to-date onerous, time-consuming, and expensive. 
+Most critically, outdated items in the directory threaten its usability for survivors who need to identify urgent assistance.
+
+As of May, 2024, Women's Aid's directory attempts to keep information on 510 programmes up to date (where multiple locations for the same organisation are counted separately) \cite{wadir}.
+The availability and correctness of such a service is crucial. 
+Ideally, finding and curating new services (as well as removing ceased programmes) is full automated, to lighten the manual burden of the day-to-day running of the database and service.
+
+We have built a self-updating catalogue using web crawling and rules-based relevance models (code and data: \url{https://github.com/smich42/st-andrews-dvsvc}).
+Our resource creates a comprehensive list of Domestic Abuse concepts and vocabulary in consultation with Domestic Abuse Research and Impact Scotland (DARIS: \url{https://daris.wp.st-andrews.ac.uk/}) researchers and their contacts within Domestic Abuse services. 
+This is being carefully designed into a database, which allows for possible changes in vocabulary while remaining scalable to eventually cover services across the whole UK. 
+Critically, our flexible framework will allow other public service sectors (both nationally and internationally; such as refugee services, etc.) to modify our approach and reproduce a database that serves their services and programmes.
+
+
+
+\section{Workflow}
+\label{sec:flow}
+The creation of the services resource consists of multiple stages (\cref{fig:stages} shows their interplay), most of which run automatically. However, given the complex nature of determining relevance, some minor manual intervention (through Human Verifiers) in the creation of the Expert Lists and sanitisation of the data is needed before the data is made available to the public through a website.
+Our goal is to make the resource flexible in terms of:
+\begin{itemize}
+    \item services; while we focus on Domestic Abuse services, the framework introduced can be easily repurposed for other critical services with a fast turn-around in programmes (such as homelessness services).
+    \item languages/regions; the resource created focuses on English-language UK services, but this can be flexibly changed to any language or region (such as adding Welsh/Gaelic services to the UK list).
+\end{itemize}
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[auto,on grid,>=latex,every node/.style={align=center,draw,rectangle,inner sep =5pt}]
+\node[draw=none] (a) at (5.5,1) {initial idea};
+\node (vocab) at (0,0) {Vocabulary \\ \& Features};
+\node (model) at (0,-1.5) {Relevance Models};
+\node (crawl) at (0,-3) {Web Crawler};
+\node[color=blue] (verify) at (5.5,0) {Human Expert};
+\node[color=gray] (db) at (5.5,-1.5) {\color{gray}{Database}};
+\node[color=gray] (web) at (5.5,-3) {\color{gray}{Website}};
+
+\draw[->] (vocab) edge node [draw = none,left] {informs} (model)
+            (model) edge node [draw = none,left] {weights} (crawl)
+            (crawl) edge node [draw = none,below,xshift=3mm] {populates} (db)
+                edge [color = blue] node [draw=none,yshift=2mm,xshift=5mm] {results \\ analysed by} (verify)
+            (verify) edge [color=blue] node [draw = none] {sanitises} (db)
+                edge [color=blue] node [above,draw=none] {creates \& updates \\ weighted terms} (vocab)
+            (db) edge [color=gray] (web)
+            (a) edge (verify);
+
+\end{tikzpicture}
+\caption{All stages creating the resource. Blue shaded stages indicate manual interference. Grey shaded concepts are work-in-progress/future work.}
+\label{fig:stages}
+\end{center}
+\end{figure}
+
+Experts in Domestic Abuse are involved in the resource creation workflow in two crucial steps.
+Firstly, they are involved in creating the service vocabulary/list which is used to inform the web crawler, and part of the initial sanitisation of items in the database.
+Secondly, experts routinely need to check any changes in the data from the web crawler to identify if the data is out-of-date or pointing to an service that is not linked to domestic abuse.
+
+Identifying potential Domestic Abuse services and determining what should be included in a comprehensive directory is difficult for non-experts. 
+For example, some organisations offer support that may cater to people with historical abuse (i.e., those who have suffered abuse but are not currently fleeing from it; e.g., The Haven Project\cite{haven}), but they are not themselves Domestic Abuse services.
+Further, some commercial entities may have special offers for Domestic Abuse survivors (e.g., financial abuse support through banks, pro Bono legal work through private law firms, etc.), but these usually require referral through recognised or affiliated Domestic Abuse services, and thus are not the priority for a survivor-facing database \cite{enduser}.  
+
+Our approach requires a list of terms and expressions curated by experts in the field who have researched the topic and service providers with practical knowledge. 
+We use DARIS and their community contacts in the present project\cite{theme}. 
+This list needs to be constantly updated by the experts as the language around Domestic Abuse is fast evolving, which includes not only the addition of new terms but also the change in the meaning of older ones, with some long-standing terminology becoming obsolete or even inappropriate (e.g., ``Domestic Abuse" vs. ``Domestic Violence", where the latter is considered appropriate in England but not Scotland).
+
+
+In addition to vocabulary keywords, we look for particular features associated with Domestic Abuse services. 
+The most notable are ``Quick Exit'' buttons: interactive elements that commonly appear on webpages servicing survivors of Domestic Abuse, particularly those needing to hide their browsing activity from their abuser. 
+They are not standardised with respect to design and wording.
+We look for clickable HTML elements labelled by a word such as ``leave", ``exit", along with either a mention of ``page", ``website", \textit{or} ``quick", ``now", etc. 
+In rare cases, the quick exit button will not explicitly contain text but rather an image or symbol, making it undetectable. 
+
+Relevance modelling incorporates the list of vocabulary and features and serves two purposes to our workflow. First, it allows us to decide whether to add it to the database. Second, it allows us to prioritise URLs that are more likely to link to relevant pages.
+
+
+
+\section{Conclusion}
+\label{sec:future}
+
+As subsequent crawls are performed, the weights of the relevance models, itemisation criteria of the crawler and set of starting pages will continue to be modified. The crawls will generate new itemisations for incremental review both due to new services appearing and because the improved crawler will be increasingly efficient, identifying previously unseen services earlier than before.
+
+At the same time, we start to extract relevant information about the services.
+Beginning with identifying the region(s) in which service operates, information about who can benefit from a given service will be extracted (potentially subject to human review in ambiguous cases) and identifying the service types that are provided.
+
+The next steps are building a webpage with a user-friendly way of querying the database quickly, as well as an web-embeddable frontend which can be integrated into various services' webpages as well. This will allow services like Women's Aid to provide a comprehensive database of services to their end-users at no cost, allowing valuable funds to contribute to other essential service offerings and relieving the burden of manually updating a database.
+
+The work presented consists of an adaptable framework for identifying specialised services, with a focus on UK-based Domestic Abuse services, which consist of higher automation and will reduce the need for repeated lengthy manual curating efforts.
+The continuous crawling and fine-tuning will enable the system to become more efficient over time and to update the catalogue as services appear and disappear due to a volatile funding landscape. The workflow presented here can be applied to other sectors and regions to achieve similar results.
+
+% \section*{Acknowledgment}
+
+% We thank the Scotland's Biggest Challenge Competition at the University of St Andrews for providing initial support for our project. We further thank the Impact and Innovation teams at St Andrews (both the central team and the Psychology and Neuroscience team) for continued funding and support. Finally, we would like to thank and acknowledge Fife Women's Aid for their invaluable consultation throughout this project.
+
+\begin{thebibliography}{00}
+% \bibitem{rukchar} Charity Commission for England and Wales \url{https://www.gov.uk/government/organisations/charity-commission} (Accessed 10/05/2024).
+% \bibitem{nichar} Charity Commission for Northern Ireland \url{https://www.charitycommissionni.org.uk/} (Accessed 10/05/2024).
+% \bibitem{dammkane2021} C. Damm, and D. Kane, ``Charity Field Classification: Main Project Report". Sheffield Hallam University, Sep. 2021. doi: 10.7190/cresr.2021.7076932060.
+\bibitem{enduser} D. F. Redmiles, “Supporting the end users’ views,” in \textit{Proceedings of the Working Conference on Advanced Visual Interfaces}, in AVI ’02. New York, NY, USA: Association for Computing Machinery, May 2002, pp. 34–42. doi: 10.1145/1556262.1556266.
+\bibitem{theme} M. Vaismoradi, J. Jones, H. Turunen, and S. Snelgrove, ``Theme development in qualitative content analysis and thematic analysis," \textit{J. Nurs. Educ. Pract.}, vol. 6, no. 5, p. 100, Jan. 2016, doi: 10.5430/jnep.v6n5p100.
+% \bibitem{ma2020} Ma, J, ``Automated Coding Using Machine Learning and Remapping the U.S. Nonprofit Sector: A Guide and Benchmark", in \textit{Nonprofit and Voluntary Sector Quarterly}, vol. 50, no. 3, pp. 662-687, Oct. 2020. doi: 10.1177/0899764020968153.
+% \bibitem{scotchar} Scottish Charity Regulator (OSCR) \url{https://www.oscr.org.uk} (Accessed 30/04/2024)
+% \bibitem{scrapy} Scrapy 2.11.2
+% \url{https://scrapy.org/} (Accessed 23/05/2024)
+\bibitem{wafin20} Women's Aid Federation of England Financial Statements for the Year Ended 31 March 2020 \url{https://www.womensaid.org.uk/wp-content/uploads/2021/03/WAFE-Accounts-to-client-Final-2020.pdf} (Accessed 17/05/2024)
+\bibitem{wafin21} Women's Aid Federation of England Financial Statements for the Year Ended 31 March 2021 \url{https://www.womensaid.org.uk/wp-content/uploads/2021/10/WAFE-signed-financial-statements-2021.pdf} (Accessed 17/05/2024)
+\bibitem{wafin22} Women's Aid Federation of England Financial Statements for the Year Ended 31 March 2022 \url{https://www.womensaid.org.uk/wp-content/uploads/2022/11/Signed-financial-statements-2022-2.pdf} (Accessed 17/05/2024)
+\bibitem{wadir} Women's Aid Federation of England, Women's Aid Directory \url{https://www.womensaid.org.uk/womens-aid-directory/} (Accessed 22/05/2024)
+\bibitem{haven} The Haven Project \url{https://thehavenproject.org.uk} (Accessed 22/05/2024)
+% \bibitem{cornrt} Cornwall Refugee Trust \url{https://www.cornwallrefugetrust.co.uk} (Accessed 22/05/2024)
+% \bibitem{aanchalwa} Aanchal
+% \url{https://aanchal.org.uk} (Accessed 22/05/2024)
+% \bibitem{wauk} Women’s Aid Federation of England \url{https://www.womensaid.org.uk} (Accessed 22/05/2024)
+\end{thebibliography}
+
+\end{document}
+
+The availability and correctness of such a service is crucial. 
+Ideally, finding and curating new services (as well as removing ceased programs) should be fully automated, to  lighten the manual burden of the day-to-day running of the database and service.
+
+We have built a self-updating catalogue using web crawling and rules-based relevance models.
+This is the first step which will enable the creation of a Graphical User Interface that can be embedded into websites belonging to Domestic Abuse services, allowing survivors to find resources in their area that meet their needs and remove the database burden from service providers. 
+
+This resource creates a comprehensive list of Domestic Abuse concepts and vocabulary in consultation with the Domestic Abuse Research and Impact Scotland (DARIS: \url{https://daris.wp.st-andrews.ac.uk/}) researchers and their contacts within Domestic Abuse Services. 
+This is being carefully turned into a database, which depends on a flexible design to integrate possible changes in vocabulary while remaining scalable to eventually cover services across the whole UK. 
+Critically, our flexible design will allow other important public service sectors (both nationally and internationally) to modify our approach and reproduce a database that serves their services and programs.
+
+We are presenting the first steps involved in the creation of this semi-automated data crawler and database resource (the code and data of which can be found in this public GitHub repository \url{https://github.com/smich42/st-andrews-dvsvc}).
+This paper presents the workflow of how appropriate data is being found, curated and tagged (in \cref{sec:flow}). 
+It then looks at the results for the web crawler and presents the quality of the found webpages (\cref{sec:res}).
+Finally, \cref{sec:future} will discuss the imminent next steps of how the database of services will be presented and made accessible to the end-user.
+
+
+
+
+
+\section{Workflow}
+\label{sec:flow}
+The creation of the services resource consists of multiple stages (as shown \cref{fig:stages} shows their interplay) most of which run automatically, but some manual intervention in the creation of the Expert Lists and sanitisation of the data (through a Human Verifier) is needed before the data is made available to the public through a Website.
+
+All stages are created for the fullest flexibility and longevity of the resource.
+Our goal is to make the resource flexible in terms of
+\begin{itemize}
+    \item services; while we focus on domestic abuse services, the framework introduced can be easily repurposed for other critical services with a fast turn-around in programs (such as homelessness).
+    \item languages/regions; the resource created focuses on English/UK services, but this can be flexibly changed to any language or region (such as adding Welsh/Gaelic services to the UK list).
+\end{itemize}
+In the following sections we detail each of the stages of the workflow (as presented in \cref{fig:stages}).
+
+\begin{figure}
+\begin{center}
+\begin{tikzpicture}[auto,on grid,>=latex,every node/.style={align=center,draw,rectangle,inner sep =5pt}]
+\node (vocab) at (0,0) {Expert Lists};
+\node (model) at (0,-2) {Relevance Model};
+\node (crawl) at (0,-4) {Web Crawler};
+\node (verify) at (4,0) {Human Verifier};
+\node (db) at (4,-2) {Database};
+\node (web) at (4,-4) {Website};
+
+\draw[->] (vocab) edge node [draw = none,left] {informs} (model)
+            (model) edge node [draw = none,left] {weights} (crawl)
+            (crawl) edge node [draw = none,below,xshift=3mm] {populates} (db)
+            (verify) edge node [draw = none] {sanitises} (db)
+                edge node [draw = none] {creates\\updates} (vocab)
+            (db) edge (web);
+
+\end{tikzpicture}
+\caption{All stages creating the resource.}
+\label{fig:stages}
+\end{center}
+\end{figure}
+
+\subsection{The Role of Human Verifiers}
+\label{sec:verif}
+The experts are involved in the resource creation workflow in two crucial steps.
+Firstly, they are involved in creating the expert vocabulary/list with is used to inform the web crawler, and part of the initial sanitisation of items in the database.
+Second, the experts routinely need to check any changes in the data from the web crawler to identify if the data is compromised.
+
+Identifying potential Domestic Abuse services and determining what should be included in a comprehensive directory is difficult for non-expert humans. 
+For example, some organizations offer support that may cater to people with historical abuse (i.e., those who have suffered abuse but are not currently fleeing from it; e.g., The Haven Project\cite{haven}), but they are not themselves Domestic Abuse services.
+Further, some commercial entities may have special offers for Domestic Abuse survivors (e.g., financial abuse support through the Bank Of Scotland, pro Bono legal work through private law firms, etc.), but these usually require referral through recognized or affiliated Domestic Abuse services, and thus are not the priority for a survivor-facing database \cite{enduser}.  
+Moreover, many local council websites provide information on Domestic Abuse alongside a phone number, but it can be extremely difficult to determine if the phone number is associated with a one-off Domestic Abuse service or just a general inquiry line that will signpost to specific Domestic Abuse services. To illustrate this point, see the Thanet Council webpage on Domestic Abuse ( \url{https://daris.wp.st-andrews.ac.uk/}). They provide a phone number to call in case of Domestic Abuse, heavily implying that they offer a one-off service. However, careful vetting of the phone number and associated project reveals that survivors are being referred to a homelessness service, not a domestic abuse service. This example shows precisely how important it is to develop a clear and simple database of relevant services for end users. It also demonstrates the necessity of (expert) human verification within the workflow.
+These and other practical decisions based on the needs of the end user make it essential to include experts in the design and verification process. 
+In our case, we must identify and include only programs from organizations specializing in Domestic Abuse response and prevention.
+
+The list of terminology and vocabulary, as well as their importance for a sensitive topic like ``UK Domestic Abuse Services" must be created and configured by an expert.
+There are too few UK services for a machine learning binary-classifier model to train on and they are hard to identify manually. 
+The Women's Aid Directory numbers just 510 services.
+Damm \& Kane \cite{dammkane2021} achieved a maximum of 57\% accuracy in labelling registered UK charities across various machine learning models, with a substantially larger dataset (6,203 labelled charities) than is achievable in our domain---though this was a multi-label classifier. 
+While Ma \cite{ma2020} achieved 90\% accuracy in multi-class classification, that is also with a large dataset of US nonprofit organisations and significantly more complex model. 
+Crucially, our use case requires a degree of human judgement that, as discussed, is challenging for non-experts.
+
+A manually informed approach is thus more appropriate, and allows for the flexibility in the framework that we are aiming to achieve.
+That means that we use the list of vocabulary and the knowledge of DARIS experts to infer weighted \textit{predicates} that can collectively identify domestic abuse services. 
+We iteratively modified the predicates until the resulting provisional catalogue of webpages contains an amount of pages which is reasonable to ask an expert to review.
+
+Once the initial catalogue is labelled, continuing to run the crawler should only generate trivially small increments to the dataset as services appear or disappear.
+There is only a one-off large  manual cost, that is reviewing the initial catalogue. 
+Results must nonetheless be manually reviewed before they are published to end users---importantly, our system facilitates both reviewing and updating the catalogue with a trivial manual burden in comparison with current fully manual efforts.
+
+
+
+\subsection{List of Vocabulary and Features}
+\label{sec:vocab}
+A list of terms and expressions is curated by experts in the field who have researched the topic and service providers with practical knowledge. 
+As mentioned, we specifically used DARIS and their community contacts in the present project\cite{theme}. 
+This list needs to be constantly updated by the experts as the language around domestic abuse is fast evolving, which includes not only the addition of new terminology but also the change in the meaning of older, as well as long-standing terminology turning obsolete or even inappropriate (e.g., ``domestic abuse" vs. ``domestic violence", where the latter is appropriate in England but not Scotland).
+
+Each of the phrases is assigned a relative weight, which we formalise in \cref{relmod}. For now, note that the weighting is determined by DARIS experts based on knowledge of what words or phrases strongly indicate that a given page represents a domestic abuse service in the region we are tackling.
+
+In addition to vocabulary keywords, we look for particular features associated with domestic abuse services. 
+The most notable are ``Quick Exit'' buttons: interactive elements that commonly appear on webpages servicing victims of domestic abuse, particularly those needing to hide their browsing activity from their abuser. 
+As \cref{fig:exit} shows, they are not standardised with respect to design and wording.
+We look for clickable HTML elements labelled by a word such as ``leave", ``exit", etc., along with either a mention of ``page", ``website", etc. \textit{or} ``quick", ``now", and so on (or both). In rare cases, the quick exit button will not explicitly contain text but rather an image or symbol, making it undetectable. Similarly, there are some one-off particular phrases used that are undetectable, but they are too infrequent to warrant the creation of a more complex model (for one, see Cornwall Refuge Trust in \cref{fig:exit}).
+
+Another feature are charity codes. Registers of Scottish and rest-of-the-UK (rUK) charity codes are published by the Scottish Charity Regulator (OSCR), Charity Commission for England and Wales and Charity Commission for Northern Ireland \cite{scotchar, rukchar, nichar}.
+Scottish charity codes are particularly useful because they are prefixed with ``SC". 
+Conversely, rUK charity codes are 6 or 7 digit integers and---critically---sequential. 
+Whenever we see a six or seven digit number, it is bound to correspond to \textit{some} charity irrespective of whether it actually represents one.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{quick-exit.png}
+    \caption{Different Quick Exit buttons for Aanchal \cite{aanchalwa}, Cornwall Refuge Trust\cite{cornrt} and Women's Aid UK \cite{wauk}, respectively.}
+    \label{fig:exit}
+\end{figure}
+
+The list of vocabulary/terminology can be replaced with another to create a resource for other sectors (e.g., services for people experiencing homelessness, services for recent immigrants/refugees, etc.). 
+But as discussed above, should the list be adapted, experts need to be consulted about the importance of terms and checks of the web crawler's initial results must be performed to ascertain performance and make modifications as need be. 
+
+\subsection{Relevance Modelling}
+\label{relmod}
+
+Relevance modelling incorporates the list of vocabulary and features and serves two purposes to our workflow. First, it allows us to decide whether to \textit{itemise} a page, i.e., add it to the database. Second, it allows us to prioritise URLs that are more likely to link to relevant pages.
+
+As such, there are two models involved in ranking webpages for their relevance. 
+Both share the same underlying mathematical functions, but the \textit{link model} investigates URLs, while the \textit{page model} evaluated the HTML content of the pages. We will first discuss the mathematical foundations (which both models share), before delving into its impact on the two models.
+
+A set of predicates is initially derived from the list of vocabulary and features. Each item in the list is translated either as a regular expression predicate (e.g. matching the \url{.org.uk} top-level domain), an HTML lookup predicate (e.g. ``Quick Exit" buttons), or a keyword lookup predicate (e.g. the phrase ``intimate partner violence"). In particular, a keyword lookup predicate is a set of keyword sets along with an integer $n$, requiring $n$ terms of each keyword set to decide that the predicate is a match. For instance, to decide that a page is a news site we need both news-related terminology (e.g. ``news", ``headline") and enough general news topics to appear (e.g. ``politics", ``weather") --- ensuring that the page is news-related, as well that it is not, e.g., a ``news and announcements" section of a Domestic Abuse service website.
+
+For each predicate $p$ from our list of vocabulary we manually assigned two weights $c_p$ and $s_p$, a \textit{constant} and a \textit{scaling} weight respectively. As described in \cref{sec:vocab}, these values are based on expert judgement. We also use successive crawls search for their optimal values. For example, the scaling effect of a Scottish charity code was initially set to relatively high value. Manually inspecting the predicates matched by false-positive pages revealed that this amplified charities that \textit{funded} domestic abuse services rather than \textit{ran} them. A reduced value thus reflected that Scottish charity status is a less reliable predictor of relevance than originally thought.
+
+For an input $I$ (either an URL or the HTML content), and a set of predicates $P$ (the list of vocabulary and features), we calculate a score (which will lay in the interval $(-1,1)$) of the input as a logistical scale of the effects of the predicates' weights. Scores near -1 will indicate the overwhelming presence of predicates with negative effect, indicating irrelevance, while scores near 1 will indicate the overwhelming presence of positively weighted predicates, indicating relevance.
+
+\begin{equation}
+\begin{aligned}
+\text{Score}(I, P) = & \sigma_{x_{90}}(\text{Compound}(I, P) \\ 
+& +\gamma\text{WordCount}(I))
+\end{aligned}
+\label{eq:score}
+\end{equation}
+
+where $x_{90}$ is the $x$-value needed for the 90th percentile of positive confidence and $\gamma$ is a non-positive word count factor, both derived through an initial judgement and iteration.
+We define  $\sigma_{x_{90}}: \mathbb{R}\rightarrow (-1,1)$ to be the transformation of the standard logistic function that passes through $(0, 0)$ and the point $(x_{90}, 0.90)$ with a supremum of 1.
+
+The WordCount function counts how many words the input consists of. For a URL this will be 0, and for a page we remove markup elements such as HTML before counting.
+
+The Compound function computes the cumulative effect of the constant and scaling factors of the matched predicates. So, for an input $I$ and a set of predicates $P$ it is 
+\begin{equation}
+\begin{aligned}
+\text{Compound}(I, P) = & \left(\prod_{p\in P} s_p \text{ IsMatch}(I, p)\right) \\
+& \times \left( \sum_{p\in P}c_p\text{ IsMatch}(I, p)\right)
+\end{aligned}
+\label{eq:comp}
+\end{equation}
+
+where IsMatch is a boolean function; if part of the input $I$ matches the predicate $p$ then we assign it the value $1$.
+
+Because Score is continuous (rather than, e.g., classifying 0/1 for relevant/irrelevant), it can be used in combination with \textit{meta-heuristics} to make a final decision on relevance. As will be discussed further, we may be confident that a particular website is relevant if it is dense in reasonably high-scoring pages even if no individual page has an exceptional score (some services' pages can be relatively bare). A binary judgement of 0/1 by the scorer would not allow this flexibility on the part of the crawler.
+
+The link model generates an \textit{lscore} (based on \cref{eq:score}) between -1 and 1 that indicates relevance to the ``broad topic" of our search: UK-based services, charities and organisations. 
+The reason for the link model being ``broad" is that URL text is not enough information to classify the page it links to. 
+We may be able to infer, for instance, that a given link refers to a British charity if it ends in \texttt{.org.uk} and matches the vocabulary words ``charity" and ``foundation"---but it is impossible to infer \textit{what} the charity is about, and our manual inspection of known domestic abuse services indicated that URLs do not consistently offer such granular insight.
+
+This also means links are rarely penalised: URLs simply do not provide enough hints to confidently do so. Therefore, lscore does not implement negative predicates, with the exception of regional TLDs of non-UK Enlish-speaking nations, which are weighted as $-\infty$ to avoid visiting altogether. Negative lscores are thus rare.
+
+The page model predicts whether a given page is a domestic abuse service; that is the \textit{pscore} of the page (again based on \cref{eq:score}). 
+A pscore ranges between -1 and 1, where 1 indicates absolute certainty that the page is relevant and -1 that it is irrelevant.
+
+\textbf{this is how far I got $\leftarrow$ RUTH, but having a quick scan over some of the below, could this be the weighting thing that I was hoping to have covered in a previous section? If so, SHIFT IT :D}
+
+Scaling and constant terms accumulate separately such that their effect is independent of the order in which they are matched. Crucially, scaling terms enable us to approximate a contextual understanding of different terms in the text---essentially, depending on its $s$-weight, a predicate can have a dampening or a amplifying effect on other predicates. For example, the predicate matching universities and academic journals was ultimately set a 0.7 scaling weight, dampening the effect of the keyphrase ``coercive control" by 30\% as informed by the fact that the mention is likely in an academic context. Conversely, matching a Scottish charity code has a 1.2 scaling weight, as it reveals that the page is contextually relevant.
+
+A word-count factor is needed because wordy pages (e.g. ``Terms and Conditions" documents) tend to match more predicates irrespective of whether they are relevant overall. One approach is to divide the compounded weights by the word count and consider the predicate \textit{density} of a page. However, we found this approach to unnecessarily penalise some relevant websites; for instance, larger services may focus on more topics than domestic abuse, making their pages sparser in relevant keywords. A constant word-count factor avoids over-penalising relevant pages, while filtering out those who are so unusually wordy that they may match keyword predicates solely by chance.
+
+In summary, \textit{pscore} is composed of predicates for the following:
+\begin{itemize}
+    \item Keyword and keyphrase matches.
+    \item Presence of a ``Quick Exit" element.
+    \item Scottish charity codes.
+\end{itemize}
+
+\textit{lscore} similarly considers:
+\begin{itemize}
+    \item Keyword matches.
+    \item Top-Level Domains (TLDs), e.g. org.uk.
+    \item pscore of the \textit{parent page}, that is the page from which the link was obtained.
+\end{itemize}
+
+So far, we have discussed how we score pages on the likelihood that they service domestic abuse victims. However, we must also ensure that the domestic abuse services we identify are UK-based. A way of doing this would be to develop a set of ``localisation" predicates for pscore. For instance, we could match regional linguistic hints such as spellings or idioms, place names and phone numbers in conjunction with \textit{whois} lookups. But a naive implementation of such a mechanism is bound to be inaccurate: spelling variants and place names are often duplicated across English-speaking nations (especially in the Commonwealth) and \textit{whois} can be anonymised (as it often is by services that are naturally concerned with privacy). As an aside, it would be more difficult to look for services in Scotland rather than UK-wide precisely because it would require our localisation mechanism to be more granular. We aim to develop a more sophisticated localisation mechanism as future work for labelling the discovered services, in order that they may be recommended to end users depending on their region.
+
+For the scope of this paper, instead of trying to accurately classify pages by country, we limit our search space to links that are likely to be associated with the UK. We found success in using lscore as our localisation mechanism. In effect, we:
+\begin{itemize}
+    \item Dampen links with TLDs belonging to other English-speaking countries, such as .gov, .edu, .ie, .au, etc.
+    \item Implicitly boost links discovered in websites with OSCR codes, through the ``parent pscore" heuristic.
+    \item Initially populate the search space with known UK-based organisations.
+\end{itemize}
+
+\subsection{Web Crawler}
+\label{sec:crawl}
+
+The web crawler begins a search from a set of 212 pages that belong to prominent UK-based domestic abuse services. Each of the starting pages has a priority of $+\infty$. When a website is visited, all links from it are extracted and added to the visit frontier with priority ratings on a discrete 20-rank scale according to their lscore.
+
+An in-memory cache of the pscores for every First-Level Domain (FLD, used here to mean its domain followed by the TLD) is maintained. If upon visiting a page we score it above a given ``exceptional" threshold, the page is itemised. Otherwise, we look at the cached pscores for the given FLD. If there are enough samples, and the proportion of pages having a ``good" pscore is high, we itemise the FLD. We have found 0.95, 0.80 and 60\% to be appropriate ``exceptional", ``good" and ``proportion of `good' pages" thresholds, but this will likely vary by topic, predicates and the desired accuracy/recall trade-off. Lower thresholds will generate more itemisations. In our case, we sought a middle ground between recall and accuracy; we can manually filter out some irrelevant results, but our aim is also to reduce the manual burden of manually discovering services. We iteratively tested short crawls with different thresholds, sampled their results and adjusted as needed.
+
+This iteration also allowed us to explicitly handle some edge cases, namely:
+\begin{itemize}
+    \item Some news sites and political advocacy groups include wording that is hard to differentiate from, e.g., larger Domestic Abuse services with a ``news" section to their website.
+    \item UK government data sources publish documents addressing Domestic Abuse that are dense in relevant terminology \textit{and} come from a .gov.uk source.
+    \item One-time events (e.g. training or awareness seminars) that are dense in relevant text appear on ticket-booking websites.
+\end{itemize}
+
+We explicitly blacklist these websites. Modifying the page model to exclude them would likely overfit it to these particular cases.
+
+A significant challenge in crawling is identifying \textit{crawler traps}, that is websites that generate infinitely many discovered links for a crawler to visit. Calendars are a classic example: each calendar page may contain a distinct link to the page chronologically succeeding it, thereby creating an inexhaustible source of links. Our link prioritisation mechanism exacerbates this risk, as a crawler trap with high-ranking links could endlessly dominate the search. We safeguard against crawler traps by only visiting each page once (hence avoiding loops) and bounding above the number of requests the crawler may make to a single FLD.
+
+Other badly behaved websites can cause our requests to repeatedly fail or time out. We thus also bound above the number of failed requests we allow for any website. Of course, we expect \textit{some} bad responses, e.g. due to outdated links.
+
+Legitimate Scottish resources have to carry the Scottish Charity number of on the page, which we can filter for as well.
+
+As an aside, the crawling phase of the resource could look through OSCR only. 
+The OSCR keeps records about the registered charities in Scotland, these include location, whether the charity is active and some details about the charity. 
+We have found that the OSCR does not contain enough information about the domestic abuse charities for us to be able to identify which services they might provide and for whom.
+But we are using this register to verify the crawled websites as well as sanitise the data set.
+
+Owing to link prioritisation, we expect that the rate of discovery of relevant websites (i.e. \# Unseen FLDs found to be relevant / Requests made) generally diminishes as more pages are visited. It is nonetheless difficult to know for certain when to stop the crawl. While results may become irrelevant for some time during the crawl, there is a likelihood that a cluster of relevant, unseen pages will soon be discovered. For this reason, we run the crawl for longer than we anticipate will yield relevant pages. Ensuing analysis of the results will reveal from which point onwards they are too often irrelevant for us to extend the crawl.
+
+This is useful knowledge for subsequent crawls, which will be used to update the initial catalogue. Running a crawl for the number of pages visited during the initial one, we will notice that some services have disappeared (due to disappearing services' websites no longer being hosted or links to them being removed) and that new ones have appeared. These discrepancies will then be manually reviewed and integrated to our catalogue.
+
+Any new FLDs that are confirmed to be relevant will also be added to the set of starting pages for subsequent crawls. Increasing the number of known relevant starting pages for the crawl will likely increase the chance that an unseen relevant result will be detected early. That is because links to relevant pages will normally be found no more than a few links' distance from some other relevant page. Considering that one service need not directly link to another for this to be true (e.g. it could link to the website of a local council, which provides a directory of local Domestic Abuse services) it is highly unlikely that some valid service would not be linked to in this manner. Confirming this empirically over several crawls will be allow a gradual decrease in the length of each subsequent crawl.
+
+The crawler is implemented in Scrapy 2.11 \cite{scrapy}, an established, well-documented crawling framework for Python. We output the live crawl results to a PostgreSQL database export as CSV the results of queries that require expert review.
+
+\section{Results of the Initial Crawl}
+\label{sec:res}
+
+Using ``eyeball" estimates of the results of earlier crawls, it is possible to make a liberal estimate of how long to run the initial crawl for.
+For the particular crawler configuration and the search topic that this paper covers, 2,000 domains would be sufficient to exhaust the parts of the search space that could yield relevant results.
+Effectively, we can be reasonably confident that there are very few clusters of websites that are relevant but so far unvisited. 
+
+More importantly, if there are few undiscovered relevant results, the rate at which we discover them (\# relevant domains visited / \# all domains visited) necessarily decreases, and therefore the rate of false positives rises.
+As such, the database will contain a greater proportion of irrelevant results for a human expert to filter out, implying rapidly diminishing marginal returns once most relevant domains are itemised.
+The cost of an overlong crawl is not measured only in machine time, but also human time.
+
+The initial crawl itemised 2,162 different domains. Of those, we randomly sampled 300 and shuffled them for two independent coders to review.
+
+Each coder marked three boolean flags for each domain in the subsample:
+
+\begin{enumerate}
+    \item \textbf{Relevant}. The organisation offers support directly to Domestic Abuse survivors and provide services related to one of the following:
+        \begin{itemize}
+            \item Domestic abuse (including all forms of abuse that occur in the home/in a relationship, such as partner abuse, child abuse, parent abuse, abuse of a pet, physical, emotional, sexual, financial, etc.)
+            \item Sexual violence (in or outside of the home) 
+            \item Human trafficking 
+            \item Forced marriage/child marriage 
+            \item Youth centre (with at least one Domestic Abuse service) 
+        \end{itemize}
+    \item \textbf{Specialised}. The organisation does not just provide a ``one-off" service, that is a service on the list above, while otherwise \textit{not} being an organisation of the nature listed above.
+    \item \textbf{Active in the UK}. The organisation offers support directly to survivors in the UK.
+\end{enumerate}
+
+Note that the 2,162 visited pages are not a representative sample of the general web, so the results of this coding do not generalise to the performance of the page relevance model.
+First, the prioritisation mechanism and identification of starting pages biases it in favour of likely relevant pages.
+Secondly, the choice of cut-off point to end the crawl affects the proportion of false positives in the result set, for the reasons discussed earlier.
+
+\begin{figure}
+    \centering
+    \resizebox{8cm}{!}{\input{plot_bar.pgf}}
+    \caption{Breakdown of relevant services in two independent codings of the subsample of itemised domains (n=300).}
+    \label{fig:plots4}
+\end{figure}
+
+\Cref{fig:plots4} breaks down the itemised pages coded as \textit{relevant} in the subsample. 29.0\% and 26.3\% of the subsample were relevant UK-based services according to either coder, and thus the expected number of them in the final dataset is 626.0 and 568.6, respectively. 490.1 and 338.7 are expected to be specialised.
+
+The per cent agreement between the two coders is 87.0\% on general relevance (criterion 1 above) and 96.7\% on country relevance (criterion 3).
+Differences in the latter are mostly due to disagreement on whether an international service operates in the UK, but no service found to be relevant by either coder is disagreed on in this respect.
+
+All three criteria are agreed on for 78.0\% of items, which is partially driven by disagreement on whether to categorise a relevant service as one-off.
+In particular, among the 94 services agreed on as relevant, 21 were categorised differently on criterion 2.
+
+This discrepancy is partially accounted for by ambiguities in how certain services advertise themselves, the groups they service and the kinds of support they offer.
+For example, it is can be ambiguous whether a service offering counselling to victims of various crimes (including Domestic Abuse survivors) is a relevant Domestic Abuse service, and if so, whether it is one-off.
+Further, such a service may be very similar to, e.g., an organisation  targeting individuals suffering personality disorders after trauma---unambiguously \textit{not} a Domestic Abuse service.
+Other services, as discussed under \cref{sec:verif}, do not make it clear whether they directly service victims or what kinds of support they can offer.
+
+Such ambiguities make it harder for victims to know what services are relevant to them, underscoring the need for a central catalogue and expert curation.
+
+While the sample of visited pages is not representative of the web, inspecting the itemisations generated by the crawler, pages' pscores and the lscores of discovered links allows insight into the behaviour of the crawler.
+
+\begin{figure}
+    \centering
+    \resizebox{9cm}{!}{\input{plot_items.pgf}}
+    \caption{The number of pages itemised and the domains (FLDs) they originate from as the crawl progressed.}
+    \label{fig:plots1}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \resizebox{9cm}{!}{\input{plot_lscore.pgf}}
+    \caption{The mean lscore of links discovered on every 100 pages visited during the crawl.}
+    \label{fig:plots2}
+\end{figure}
+
+lscore trends downwards during the crawl, in line with the decrease in the relevance of itemisations in \cref{fig:plots1}.
+The frequency of itemised pages decreases precisely because their pscore decreases, so they less significantly boost the scores of links discovered on them.
+At the same time, a non-negligible fraction of all links relevant to the broad topic (UK-based services, charities and organisations) have been exhausted.
+Due to targeting the broad topic, the lscore mean is unlikely to drop significantly during a crawl that visits ${\sim}10^5$ pages.
+
+\Cref{fig:plots1} shows the rate at which pages were itemised reduce as the crawl progressed through 232,700 pages visited. 
+For instance, half of itemised pages are identified well before halfway through the crawl.
+The same is not true of domains, with 1,046 of 2,162 (\textgreater 48\%) of FLDs identified after the midpoint of the crawl.
+
+\begin{figure}
+    \centering
+    \resizebox{9cm}{!}{\input{plot_hist.pgf}}
+    \caption{The frequency of relevant and UK-based domains' positions, as defined by the order in which they were discovered. Lower position indicates that the domain was discovered earlier and vice-versa.}
+    \label{fig:plots3}
+\end{figure}
+
+They generally become less relevant, as \cref{fig:plots3} demonstrates for a relatively low number of samples, but some relevant websites are nonetheless discovered.
+For example, three Women's Aid affiliates are placed between positions 2000-2100 in the order of discovered domains.
+Although two were considered for a visit early in the crawl, they were not visited until much later owing to uninformative links, which gave rise to low lscores.
+
+As discussed, 2,162 domains is a reasonable number to manually review and the crawl could not practically progress past that point.
+But the fact that websites were still being discovered implies there are yet unvisited relevant services. Per the reasoning in \cref{sec:crawl}, enriching the set of starting websites will increase the likelihood of any relevant service being discovered early, thereby increasing the number of relevant results we can in 2,162 domain itemisations.
+
+However, recall that two of the three undiscovered Women's Aid affiliates had actually been considered for a visit much earlier than they were visited and ``discovered".
+They were visited late because of a low lscore, not because links to them had not yet been found.
+This highlights an inherent limitation of the priority crawling mechanism.
+Prioritisation is needed: a random search would have to visit very many pages in order to recall all relevant domains. Even disregarding crawl time, the result set would be impractical for expert review.
+However, prioritisation also implicitly penalises those links that do not encode much information about the page they represent, consigning them to a priority too low for the crawler to visit within a reasonable number of itemisations.
+
+\section{Next Steps}
+\label{sec:future}
+
+As subsequent crawls are performed, the weights of the relevance models, itemisation criteria of the crawler and set of starting pages will continue to be modified. The crawls will generate new itemisations for incremental review both due to new services appearing and because the improved crawler will be increasingly efficient, identifying previously unseen services earlier than before.
+
+At the same time, a series of tools to extract information about relevant services will be created. Beginning with identifying the region(s) in which service operates, information about who can benefit from a given service will be extracted (potentially subject to human review in highly ambiguous cases).
+
+After this, an web-embeddable frontend will be developed and expansion into different regions using different lists of vocabulary will be considered.
+
+Overall, the system presented constitutes an adaptable framework for identifying UK-based Domestic Abuse services with trivial cost compared to fully manual efforts. Continuous crawling and fine-tuning will enable the system both to become more efficient over time and to update the catalogue as services appear and disappear due to a volatile funding landscape.
+
+\section*{Acknowledgment}
+
+We thank the Scotland's Biggest Challenge Competition at the University of St Andrews for providing initial support for our project. We further thank the Impact and Innovation teams at St Andrews (both the central team and the Psychology and Neuroscience team) for continued funding and support. Finally, we would like to thank and acknowledge Fife Women's Aid for their invaluable consultation throughout this project.
+
+\begin{thebibliography}{00}
+\bibitem{rukchar} Charity Commission for England and Wales \url{https://www.gov.uk/government/organisations/charity-commission} (Accessed 10/05/2024).
+\bibitem{nichar} Charity Commission for Northern Ireland \url{https://www.charitycommissionni.org.uk/} (Accessed 10/05/2024).
+\bibitem{dammkane2021} C. Damm, and D. Kane, ``Charity Field Classification: Main Project Report". Sheffield Hallam University, Sep. 2021. doi: 10.7190/cresr.2021.7076932060.
+\bibitem{enduser} D. F. Redmiles, “Supporting the end users’ views,” in \textit{Proceedings of the Working Conference on Advanced Visual Interfaces}, in AVI ’02. New York, NY, USA: Association for Computing Machinery, May 2002, pp. 34–42. doi: 10.1145/1556262.1556266.
+\bibitem{theme} M. Vaismoradi, J. Jones, H. Turunen, and S. Snelgrove, ``Theme development in qualitative content analysis and thematic analysis," \textit{J. Nurs. Educ. Pract.}, vol. 6, no. 5, p. 100, Jan. 2016, doi: 10.5430/jnep.v6n5p100.
+\bibitem{ma2020} Ma, J, ``Automated Coding Using Machine Learning and Remapping the U.S. Nonprofit Sector: A Guide and Benchmark", in \textit{Nonprofit and Voluntary Sector Quarterly}, vol. 50, no. 3, pp. 662-687, Oct. 2020. doi: 10.1177/0899764020968153.
+\bibitem{scotchar} Scottish Charity Regulator (OSCR) \url{https://www.oscr.org.uk} (Accessed 30/04/2024)
+\bibitem{scrapy} Scrapy 2.11.2
+\url{https://scrapy.org/} (Accessed 23/05/2024)
+\bibitem{wafin20} Women's Aid Federation of England Financial Statements for the Year Ended 31 March 2020 \url{https://www.womensaid.org.uk/wp-content/uploads/2021/03/WAFE-Accounts-to-client-Final-2020.pdf} (Accessed 17/05/2024)
+\bibitem{wafin21} Women's Aid Federation of England Financial Statements for the Year Ended 31 March 2021 \url{https://www.womensaid.org.uk/wp-content/uploads/2021/10/WAFE-signed-financial-statements-2021.pdf} (Accessed 17/05/2024)
+\bibitem{wafin22} Women's Aid Federation of England Financial Statements for the Year Ended 31 March 2022 \url{https://www.womensaid.org.uk/wp-content/uploads/2022/11/Signed-financial-statements-2022-2.pdf} (Accessed 17/05/2024)
+\bibitem{wadir} Women's Aid Federation of England, Women's Aid Directory \url{https://www.womensaid.org.uk/womens-aid-directory/} (Accessed 22/05/2024)
+\bibitem{haven} The Haven Project \url{https://thehavenproject.org.uk} (Accessed 22/05/2024)
+\bibitem{cornrt} Cornwall Refugee Trust \url{https://www.cornwallrefugetrust.co.uk} (Accessed 22/05/2024)
+\bibitem{aanchalwa} Aanchal
+\url{https://aanchal.org.uk} (Accessed 22/05/2024)
+\bibitem{wauk} Women’s Aid Federation of England \url{https://www.womensaid.org.uk} (Accessed 22/05/2024)
+\end{thebibliography}
+
+\end{document}
